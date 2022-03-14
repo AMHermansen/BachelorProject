@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import einsteinpy.utils.dual as dual
 from einsteinpy.utils.dual import _deriv
 from scipy.integrate import solve_ivp
-
+from scipy.signal import argrelextrema
 
 def convert_to_dual(positions, momenta):
     positions_dual = list()
@@ -71,14 +71,36 @@ def main():
 
     def hamiltonian_orbit(positions, momenta, h_params):
         M, m = h_params
-        return (momenta[0]**2 + momenta[1]**2 * positions[0]**(-2)) / (2 * m) - M * m / positions[0]
+        return (momenta[0] ** 2 + momenta[1] ** 2 * positions[0] ** (-2)) / (2 * m) - M * m / positions[0]
 
     def hamiltonian_double_orbit(positions, momenta, h_params):
         M, m = h_params
-        return ((momenta[0]**2 + momenta[1]**2 * positions[0]**(-2)) / (2 * M)
-                + (momenta[2]**2 + momenta[3]**2 * positions[2]**(-2)) / (2 * m)
-                - M * m / ((positions[0] * np.cos(positions[1]) - positions[2] * np.cos(positions[3]))**2
-                           + (positions[0] * np.sin(positions[1]) - positions[2] * np.sin(positions[3]))**2)**0.5)
+        return ((momenta[0] ** 2 + momenta[1] ** 2 * positions[0] ** (-2)) / (2 * M)
+                + (momenta[2] ** 2 + momenta[3] ** 2 * positions[2] ** (-2)) / (2 * m)
+                - M * m / ((positions[0] * np.cos(positions[1]) - positions[2] * np.cos(positions[3])) ** 2
+                           + (positions[0] * np.sin(positions[1]) - positions[2] * np.sin(positions[3])) ** 2) ** 0.5)
+
+    def hamiltonian_einstein_infeld_hoffmann(positions, momenta, h_params):
+        G, c, M, m = h_params
+        m_inv = 1 / m
+        M_inv = 1 / M
+        p2 = momenta[0] ** 2 + momenta[1] ** 2
+        r = (positions[0] ** 2 + positions[1] ** 2) ** 0.5
+        return (
+                p2 / 2 * (m_inv + M_inv) - G * m * M / r
+                + p2 ** 2 / (8 * c ** 2) * (m_inv ** 3 + M_inv ** 3)
+                - G / (2 * c ** 2 * r) * (3 * p2 * (M * m_inv + m * M_inv) + 7 * p2
+                                          + ((momenta[0] * positions[0] + momenta[1] * positions[1]) / r) ** 2)
+                + G ** 2 * m * M * (m + M) / (2 * c ** 2 * r ** 2)
+        )
+
+    def hamiltonian_reduced_two_body(positions, momenta, h_params):
+        G, c, M, m = h_params
+        m_inv = 1 / m
+        M_inv = 1 / M
+        p2 = momenta[0] ** 2 + momenta[1] ** 2
+        r = (positions[0] ** 2 + positions[1] ** 2) ** 0.5
+        return p2 / 2 * (m_inv + M_inv) - G * m * M / r
 
     def harmonic_oscillator():
         t_span = (0, 10)
@@ -173,10 +195,61 @@ def main():
         ax2.legend(loc='upper right')
         plt.title('conserved quantities')
         plt.show()
+        print(solution.y[1, 0])
+        print(solution.y[1, -1])
+
+    def eih_plots():
+        t_span = (0, 3 * 10 ** 4)
+        initial = np.array([200, 0, 0, 0.0000006])
+        mass_2 = 1
+        mass_1 = 0.00001
+        h_params = np.array([1, 1, mass_1, mass_2])
+        max_step = t_span[1] / 10000
+        solution_eih = solve_hamiltonian(hamiltonian=hamiltonian_einstein_infeld_hoffmann, t_span=t_span,
+                                         initial=initial, h_params=h_params,
+                                         method='DOP853', dense_output=True, max_step=max_step)
+
+        solution_newton = solve_hamiltonian(hamiltonian=hamiltonian_reduced_two_body, t_span=t_span,
+                                            initial=initial, h_params=h_params,
+                                            method='DOP853', dense_output=True, max_step=max_step)
+
+        ratio_1 = (1 + mass_1 / mass_2) ** (-1)
+        ratio_2 = (1 + mass_2 / mass_1) ** (-1)
+
+        plt.plot(solution_eih.y[0, :] * ratio_1, solution_eih.y[1, :] * ratio_1, 'r-', label='particle 1 EIH')
+        plt.plot(-solution_eih.y[0, :] * ratio_2, -solution_eih.y[1, :] * ratio_2, 'b-', label='particle 2 EIH')
+        plt.plot(solution_newton.y[0, :] * ratio_1, solution_newton.y[1, :] * ratio_1, 'k--', label='particle 1 Newton')
+        plt.plot(-solution_newton.y[0, :] * ratio_2, -solution_newton.y[1, :] * ratio_2, 'y--',
+                 label='particle 2 Newton')
+        plt.legend()
+        plt.title(f"Two body EIH {mass_1=} {mass_2=}")
+        # plt.xlim((-500, 500))
+        # plt.ylim((-500, 500))
+        plt.xlabel("X-Coordinate [$\\mu ?$]")
+        plt.ylabel("Y-Coordinate [$\\mu ?$]")
+        plt.show()
+
+        plt.plot((hamiltonian_einstein_infeld_hoffmann(solution_eih.y[:2, :], solution_eih.y[2:, :], h_params=h_params)
+                  / hamiltonian_einstein_infeld_hoffmann(solution_eih.y[:2, 0], solution_eih.y[2:, 0],
+                                                         h_params=h_params)),
+                 'g-')
+        plt.show()
+
+        plt.plot(solution_eih.t,
+                 ((solution_eih.y[0, :] * solution_eih.y[3, :] - solution_eih.y[1, :] * solution_eih.y[2, :])
+                  / (solution_eih.y[0, 0] * solution_eih.y[3, 0] - solution_eih.y[1, 0] * solution_eih.y[2, 0]))
+                 )
+        plt.show()
+
+        r2 = solution_eih.y[0, :] ** 2 + solution_eih.y[1, :] ** 2
+        phi = np.arctan(solution_eih.y[1, :] / solution_eih.y[0, :])
+
+        print(phi[argrelextrema(r2, np.greater)])
 
     # harmonic_oscillator()
     # orbit()
-    two_bodies()
+    # two_bodies()
+    eih_plots()
 
 
 if __name__ == '__main__':
