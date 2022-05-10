@@ -16,7 +16,7 @@ def precesion():
         metric_params=(a,),
         position=position,
         momentum=momentum,
-        steps=1.2*10**5,
+        steps=1.2*10**4,
         delta=1,
         order=2,
         omega=1,
@@ -184,9 +184,9 @@ def custom_metric_test():
 
 
 def main():
-    # precesion()
+    precesion()
     # scattering()
-    custom_metric_test()
+    # custom_metric_test()
     pass
 
 
