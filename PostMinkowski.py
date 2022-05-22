@@ -4,6 +4,14 @@ from HamiltonianOrbits import solve_hamiltonian
 from scipy.signal import argrelextrema
 
 
+def get_angular_momentum(positions, momenta):
+    x = positions[0, :]
+    y = positions[1, :]
+    px = momenta[0, :]
+    py = momenta[1, :]
+    return x * py - y * px
+
+
 def hamiltonian_post_minkowski1(positions, momenta, h_params):
     """
 
@@ -16,7 +24,7 @@ def hamiltonian_post_minkowski1(positions, momenta, h_params):
     G, mass_1, mass_2 = h_params
     energy_1 = (mass_1**2 + momenta[0]**2 + momenta[1]**2)**0.5
     energy_2 = (mass_2**2 + momenta[2]**2 + momenta[3]**2)**0.5
-    momentum_abs_sq = momenta[0]**2 + momenta[1]**2
+    momentum_abs_sq = - momenta[0] * momenta[2] - momenta[1] * momenta[3]
     distance = ((positions[0] - positions[2])**2 + (positions[1] - positions[3])**2) ** 0.5
     c_1 = mass_1**2 * mass_2**2 - 2 * (energy_1 * energy_2 + momentum_abs_sq)**2
 
@@ -60,7 +68,7 @@ def post_minkowski_analysis():
     p_1 = 0.009
     initial = np.array([r_1, 0, r_2, 0, 0, p_1, 0, -p_1])
 
-    mu_inv = 1 / mass_1 + 1 / mass_2
+    reduced_mass = 1 / (1 / mass_1 + 1 / mass_2)
 
     solution_pm1 = solve_hamiltonian(hamiltonian=hamiltonian_post_minkowski1,
                                      t_span=t_span, initial=initial, h_params=h_params,
@@ -71,11 +79,6 @@ def post_minkowski_analysis():
     solution_sr = solve_hamiltonian(hamiltonian=hamiltonian_sr_newton_pot,
                                     t_span=t_span, initial=initial, h_params=h_params,
                                     method='DOP853', dense_output=True, max_step=max_step)
-
-    print("pm1: ", get_perihelion_shift(solution=solution_pm1))
-    print("sr: ", get_perihelion_shift(solution=solution_sr))
-
-
 
     plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
     plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
@@ -93,11 +96,41 @@ def post_minkowski_analysis():
 
     plt.plot((hamiltonian_post_minkowski1(solution_pm1.y[:4, :], solution_pm1.y[4:, :], h_params=h_params)
               / hamiltonian_post_minkowski1(solution_pm1.y[:4, 0], solution_pm1.y[4:, 0], h_params=h_params)),
-             'g-')
+             'g-', label='PM1 Energy')
+    plt.plot((hamiltonian_sr_newton_pot(solution_sr.y[:4, :], solution_sr.y[4:, :], h_params=h_params)
+              / hamiltonian_sr_newton_pot(solution_sr.y[:4, 0], solution_sr.y[4:, 0], h_params=h_params)),
+             'b-', label='SR Energy')
+    plt.plot((hamiltonian_two_body(solution_classical.y[:4, :], solution_classical.y[4:, :], h_params=h_params)
+             / hamiltonian_two_body(solution_classical.y[:4, 0], solution_classical.y[4:, 0], h_params=h_params)),
+             'c-', label='Newton Energy')
+    plt.legend()
     plt.show()
 
-    dist_x_pm1 = solution_pm1[0, :] - solution_pm1[2, :]
-    dist_y_pm1 = solution_pm1[1, :] - solution_pm1[3, :]
+    angular_pm1 = (get_angular_momentum(solution_pm1.y[0:2, :], solution_pm1.y[4:6, :])
+                   + get_angular_momentum(solution_pm1.y[2:4, :], solution_pm1.y[6:8, :]))
+    angular_classical = (get_angular_momentum(solution_classical.y[0:2, :], solution_classical.y[4:6, :])
+                         + get_angular_momentum(solution_classical.y[2:4, :], solution_classical.y[6:8, :]))
+    angular_sr = (get_angular_momentum(solution_sr.y[0:2, :], solution_sr.y[4:6, :])
+                  + get_angular_momentum(solution_sr.y[2:4, :], solution_sr.y[6:8, :]))
+
+    plt.plot(solution_pm1.t, angular_pm1 / angular_pm1[0], 'g-', label='PM1 Angular')
+    plt.plot(solution_pm1.t, angular_sr / angular_sr[0], 'b-', label='SR Angular')
+    plt.plot(solution_pm1.t, angular_classical / angular_classical[0], 'c-', label='Newton Angular')
+    plt.legend()
+    plt.show()
+
+    pred_delta_phi = (6 * np.pi * (h_params[0] * (mass_1 + mass_2) * reduced_mass) ** 2
+                      / angular_pm1[0] ** 2) * (np.arange(len(get_perihelion_shift(solution=solution_pm1)[1])) + 1)
+
+    print("predicted: ", pred_delta_phi)
+    print("pm1: ", get_perihelion_shift(solution=solution_pm1))
+    print("sr: ", get_perihelion_shift(solution=solution_sr))
+    print("Relative Error: ",
+          (get_perihelion_shift(solution=solution_pm1)[1]
+           - pred_delta_phi)
+          / get_perihelion_shift(solution=solution_pm1)[1])
+
+
 
 def main():
     post_minkowski_analysis()
