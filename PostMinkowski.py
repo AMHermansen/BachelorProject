@@ -32,6 +32,24 @@ def generate_energy_plot(solutions, hamiltonians, all_h_params, legends,
     plt.legend()
 
 
+def generate_split_energy_plot(solutions, hamiltonians, kinetic_energies, all_h_params, legends,
+                          x_label='Time [au]', y_label='Energy [au]'):
+    for solution, hamiltonian, kinetic_energy, h_params, label in zip(solutions, hamiltonians, kinetic_energies, all_h_params, legends):
+        number_of_coordinates = len(solution.y[:, 0]) // 2
+        position_coordinates = solution.y[:number_of_coordinates, :]
+        momentum_coordinates = solution.y[number_of_coordinates:, :]
+        initial_energy = hamiltonian(solution.y[:number_of_coordinates, 0], solution.y[number_of_coordinates:, 0], h_params)
+        normalized_energy = hamiltonian(position_coordinates, momentum_coordinates, h_params) / initial_energy
+        normalized_kinetic = kinetic_energy(position_coordinates, momentum_coordinates, h_params) / initial_energy
+        normalized_potential = normalized_energy - normalized_kinetic
+        plt.plot(solution.t, normalized_energy, label=f'{label} Total energy')
+        plt.plot(solution.t, normalized_kinetic, label=f'{label} Kinetic energy')
+        plt.plot(solution.t, normalized_potential, label=f'{label} Potential energy')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.legend()
+
+
 def generate_angular_momentum_plot(solutions, legends, position_pair_coordinates, momentum_pair_coordinates,
                                    x_label='Time [au]', y_label='Angular momentum [au]'):
     """
@@ -142,6 +160,11 @@ def hamiltonian_sr_newton_pot(positions, momenta, h_params):
     return energy_1 + energy_2 - G * mass_2 * mass_1 / distance
 
 
+def hamiltonian_sr_kinetic(positions, momenta, h_params):
+    G, mass_1, mass_2 = h_params
+    return (mass_1**2 + momenta[0]**2 + momenta[1]**2)**0.5 + (mass_2**2 + momenta[2]**2 + momenta[3]**2)**0.5
+
+
 def post_minkowski_analysis_bound_orbit():
     t_span = (0, 4*10**5)
     max_step = t_span[1] / 1000
@@ -175,7 +198,7 @@ def post_minkowski_analysis_bound_orbit():
     plt.ylim((r_2 * plot_scale, r_1 * plot_scale))
     plt.show()
 
-    generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+    generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical, solution_pm1, solution_pm2),
                          hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
                          all_h_params=(h_params, h_params, h_params),
                          legends=('PM1', 'PM2', 'Classical'))
