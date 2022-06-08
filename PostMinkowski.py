@@ -22,35 +22,41 @@ def generate_energy_plot(solutions, hamiltonians, all_h_params, legends,
                          x_label='Time [au]', y_label='Energy [au]'):
     for solution, hamiltonian, h_params, label in zip(solutions, hamiltonians, all_h_params, legends):
         number_of_coordinates = len(solution.y[:, 0]) // 2  # Number of position/momentum coordinates. Half the total number
-        print(number_of_coordinates)
         position_coordinates = solution.y[:number_of_coordinates, :]
         momentum_coordinates = solution.y[number_of_coordinates:, :]
-        print(momentum_coordinates)
         initial_energy = hamiltonian(solution.y[:number_of_coordinates, 0], solution.y[number_of_coordinates:, 0], h_params)
         normalized_energy = hamiltonian(position_coordinates, momentum_coordinates, h_params) / initial_energy
         plt.plot(solution.t, normalized_energy, label=label)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+    plt.legend()
 
 
 def generate_angular_momentum_plot(solutions, legends, position_pair_coordinates, momentum_pair_coordinates,
-                                   x_label='Time [au]', y_label='Energy [au]'):
+                                   x_label='Time [au]', y_label='Angular momentum [au]'):
+    """
+
+    :param solutions: Solutions from solve_hamiltonian
+    :param legends: Tuple of legends for the plots
+    :param position_pair_coordinates: Position pairs, when multiple x-/y-coordinates
+    :param momentum_pair_coordinates: Momentum pairs, when multiple x-/y-momenta
+    :param x_label:
+    :param y_label:
+    :return:
+    """
     for solution, label, positions, momenta in zip(solutions,
                                                    legends,
                                                    position_pair_coordinates,
                                                    momentum_pair_coordinates):
         angular_momentum = 0
-        angular_momentum_initial = 0
         for position_coordinates, momentum_coordinates in zip(positions, momenta):
-            position = (solution.y[position_coordinates[0], :], solution.y[position_coordinates[0], :])
-            momentum = (solution.y[momentum_coordinates[0], :], solution.y[momentum_coordinates[0], :])
+            position = np.array([solution.y[position_coordinates[0], :], solution.y[position_coordinates[1], :]])
+            momentum = np.array([solution.y[momentum_coordinates[0], :], solution.y[momentum_coordinates[1], :]])
             angular_momentum += get_angular_momentum(positions=position, momenta=momentum)
-            position = (solution.y[position_coordinates[0], 0], solution.y[position_coordinates[0], 0])
-            momentum = (solution.y[momentum_coordinates[0], 0], solution.y[momentum_coordinates[0], 0])
-            angular_momentum_initial += get_angular_momentum(positions=position, momenta=momentum)
-        plt.plot(solution.t, angular_momentum / angular_momentum_initial, label=label)
+        plt.plot(solution.t, angular_momentum / angular_momentum[0], label=label)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
+    plt.legend()
 
 
 def get_angular_momentum(positions, momenta):
@@ -59,6 +65,22 @@ def get_angular_momentum(positions, momenta):
     px = momenta[0, :]
     py = momenta[1, :]
     return x * py - y * px
+
+
+def get_perihelion_shift(solution, shift=0):
+    """
+
+    :param solution: The solution, for which the perihelion shift is to be measured. Assumes x,y for the shift are on
+    (0, 1)
+    :param shift: Since the solution is discretized, the maximum of the distance, might not be the correct maximum.
+    Shift lets you move to neighbouring points. (-1, 0, or 1) is recommended
+    :return:
+    """
+    r2 = solution.y[0, :] ** 2 + solution.y[1, :] ** 2
+    phi = np.arctan(solution.y[1, :] / solution.y[0, :])
+    perihelion = argrelextrema(r2, np.greater)
+    perihelion_shifted = [pos + shift for pos in perihelion]
+    return phi[perihelion_shifted]
 
 
 def hamiltonian_post_minkowski1(positions, momenta, h_params):
@@ -121,15 +143,6 @@ def hamiltonian_sr_newton_pot(positions, momenta, h_params):
 
 
 def post_minkowski_analysis_bound_orbit():
-
-    def get_perihelion_shift(solution):
-        r2 = solution.y[0, :] ** 2 + solution.y[1, :] ** 2
-        phi = np.arctan(solution.y[1, :] / solution.y[0, :])
-        perihelion = argrelextrema(r2, np.greater)
-        perihelion_left = [pos - 1 for pos in perihelion]
-        perihelion_right = [pos + 1 for pos in perihelion]
-        return phi[perihelion_left], phi[perihelion], phi[perihelion_right]
-
     t_span = (0, 4*10**5)
     max_step = t_span[1] / 1000
     r_1 = 10**3
@@ -141,8 +154,6 @@ def post_minkowski_analysis_bound_orbit():
     p_1 = 0.008
     initial = np.array([r_1, 0, r_2, 0, 0, p_1, 0, -p_1])
 
-    reduced_mass = 1 / (1 / mass_1 + 1 / mass_2)
-
     solution_pm1, solution_pm2, solution_classical = get_solutions((hamiltonian_post_minkowski1,
                                                                     hamiltonian_post_minkowski2,
                                                                     hamiltonian_two_body),
@@ -153,28 +164,6 @@ def post_minkowski_analysis_bound_orbit():
                                                                    dense_output=True,
                                                                    max_step=max_step
                                                                    )
-    # Duplicate code made into a function. Left for emergency use.
-    # solution_pm1 = solve_hamiltonian(hamiltonian=hamiltonian_post_minkowski1,
-    #                                  t_span=t_span, initial=initial, h_params=h_params,
-    #                                  method='DOP853', dense_output=True, max_step=max_step)
-    # solution_classical = solve_hamiltonian(hamiltonian=hamiltonian_two_body,
-    #                                        t_span=t_span, initial=initial, h_params=h_params,
-    #                                        method='DOP853', dense_output=True, max_step=max_step)
-    # solution_sr = solve_hamiltonian(hamiltonian=hamiltonian_sr_newton_pot,
-    #                                 t_span=t_span, initial=initial, h_params=h_params,
-    #                                 method='DOP853', dense_output=True, max_step=max_step)
-
-    # plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
-    # plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
-    # plt.plot(solution_classical.y[0, :], solution_classical.y[1, :], 'y--', label='particle 1 classical')
-    # plt.plot(solution_classical.y[2, :], solution_classical.y[3, :], 'c--', label='particle 2 classical')
-    # # plt.plot(solution_sr.y[0, :], solution_sr.y[1, :], 'm--', label='particle 1 SR')
-    # # plt.plot(solution_sr.y[2, :], solution_sr.y[3, :], 'g--', label='particle 2 SR')
-    # plt.legend()
-    # plt.title(f"Two body PM1 {mass_1=} {mass_2=}")
-    # plt.xlabel("X-Coordinate [au]")
-    # plt.ylabel("Y-Coordinate [au]")
-    # plt.show()
 
     generate_orbit_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
                         legends=(('PM1 Particle1', 'PM1 Particle2'),
@@ -186,43 +175,37 @@ def post_minkowski_analysis_bound_orbit():
     plt.ylim((r_2 * plot_scale, r_1 * plot_scale))
     plt.show()
 
-    # plt.plot((hamiltonian_post_minkowski1(solution_pm1.y[:4, :], solution_pm1.y[4:, :], h_params=h_params)
-    #           / hamiltonian_post_minkowski1(solution_pm1.y[:4, 0], solution_pm1.y[4:, 0], h_params=h_params)),
-    #          'g-', label='PM1 Energy')
-    # plt.plot((hamiltonian_two_body(solution_classical.y[:4, :], solution_classical.y[4:, :], h_params=h_params)
-    #          / hamiltonian_two_body(solution_classical.y[:4, 0], solution_classical.y[4:, 0], h_params=h_params)),
-    #          'c-', label='Newton Energy')
-    # plt.legend()
     generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
                          hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
                          all_h_params=(h_params, h_params, h_params),
                          legends=('PM1', 'PM2', 'Classical'))
     plt.show()
 
-    angular_pm1 = (get_angular_momentum(solution_pm1.y[0:2, :], solution_pm1.y[4:6, :])
-                   + get_angular_momentum(solution_pm1.y[2:4, :], solution_pm1.y[6:8, :]))
-    angular_classical = (get_angular_momentum(solution_classical.y[0:2, :], solution_classical.y[4:6, :])
-                         + get_angular_momentum(solution_classical.y[2:4, :], solution_classical.y[6:8, :]))
-
-    plt.plot(solution_pm1.t, angular_pm1 / angular_pm1[0], 'g-', label='PM1 Angular')
-    plt.plot(solution_classical.t, angular_classical / angular_classical[0], 'c-', label='Newton Angular')
-    plt.legend()
+    generate_angular_momentum_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+                                   legends=('PM1', 'PM2', 'Classical'),
+                                   position_pair_coordinates=(((0, 1), (2, 3)), ((0, 1), (2, 3)), ((0, 1), (2, 3))),
+                                   momentum_pair_coordinates=(((4, 5), (6, 7)), ((4, 5), (6, 7)), ((4, 5), (6, 7))))
     plt.show()
 
     # Precession of the orbits.
+    reduced_mass = 1 / (1 / mass_1 + 1 / mass_2)
+
+    angular_momentum = (get_angular_momentum(solution_pm1.y[0:2, :], solution_pm1.y[4:6, :])
+                   + get_angular_momentum(solution_pm1.y[2:4, :], solution_pm1.y[6:8, :]))
+
     pred_delta_phi = (6 * np.pi * (h_params[0] * (mass_1 + mass_2) * reduced_mass) ** 2
-                      / angular_pm1[0] ** 2) * (np.arange(len(get_perihelion_shift(solution=solution_pm1)[1])) + 1)
-    print("predicted: ", pred_delta_phi)
-    print("pm1: ", get_perihelion_shift(solution=solution_pm1))
-    print("pm2: ", get_perihelion_shift(solution=solution_pm2))
-    print("Relative Error pm1: ",
-          (get_perihelion_shift(solution=solution_pm1)[1]
-           - pred_delta_phi)
-          / pred_delta_phi)
-    print("Relative Error pm2: ",
-          (get_perihelion_shift(solution=solution_pm2)[1]
-           - pred_delta_phi)
-          / pred_delta_phi)
+                      / angular_momentum[0] ** 2) * (np.arange(len(get_perihelion_shift(solution=solution_pm1))) + 1)
+
+    print('predicted pm1: ', pred_delta_phi)
+    print('pm1: ', get_perihelion_shift(solution=solution_pm1))
+    print('pm2: ', get_perihelion_shift(solution=solution_pm2))
+
+    for shift in [-1, 0, 1]:
+        print(f'Relative Error pm1 {shift=}: ',
+              (get_perihelion_shift(solution=solution_pm1, shift=shift) - pred_delta_phi) / pred_delta_phi)
+    for shift in [-1, 0, 1]:
+        print(f'Relative Error pm2 {shift=}: ',
+              (get_perihelion_shift(solution=solution_pm2, shift=shift) - pred_delta_phi) / pred_delta_phi)
 
 
 def post_minkowski_analysis_scattering(r, b, p, mass_1, mass_2=1.):
@@ -251,9 +234,9 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, mass_2=1.):
     plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
     plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
     plt.legend()
-    plt.title(f"Two body PM1 {mass_1=} {mass_2=} {b=} {p=}")
-    plt.xlabel("X-Coordinate [au]")
-    plt.ylabel("Y-Coordinate [au]")
+    plt.title(f'Two body PM1 {mass_1=} {mass_2=} {b=} {p=}')
+    plt.xlabel('X-Coordinate [au]')
+    plt.ylabel('Y-Coordinate [au]')
     plt.show()
 
 
