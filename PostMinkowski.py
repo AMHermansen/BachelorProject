@@ -19,12 +19,14 @@ def generate_orbit_plot(solutions, legends, x_indices, y_indices,
 
 
 def generate_energy_plot(solutions, hamiltonians, all_h_params, legends,
-                         x_label='Time [au]', y_label='Energy [au]'):  # Doesn't work
+                         x_label='Time [au]', y_label='Energy [au]'):
     for solution, hamiltonian, h_params, label in zip(solutions, hamiltonians, all_h_params, legends):
-        number_of_coordiantes = len(solution.y[:, 0])
-        position_coordinates = solution.y[:number_of_coordiantes, :]
-        momentum_coordinates = solution.y[number_of_coordiantes:, :]
-        initial_energy = hamiltonian(solution.y[:number_of_coordiantes, 0], solution.y[number_of_coordiantes:, 0], h_params)
+        number_of_coordinates = len(solution.y[:, 0]) // 2  # Number of position/momentum coordinates. Half the total number
+        print(number_of_coordinates)
+        position_coordinates = solution.y[:number_of_coordinates, :]
+        momentum_coordinates = solution.y[number_of_coordinates:, :]
+        print(momentum_coordinates)
+        initial_energy = hamiltonian(solution.y[:number_of_coordinates, 0], solution.y[number_of_coordinates:, 0], h_params)
         normalized_energy = hamiltonian(position_coordinates, momentum_coordinates, h_params) / initial_energy
         plt.plot(solution.t, normalized_energy, label=label)
     plt.xlabel(x_label)
@@ -179,22 +181,22 @@ def post_minkowski_analysis_bound_orbit():
                                  ('PM2 Particle1', 'PM2 Particle2'),
                                  ('Newton Particle1', 'Newton Particle2')),
                         x_indices=(0, 2), y_indices=(1, 3))
-    scale = 1.1
-    plt.xlim((r_2 * scale, r_1 * scale))
-    plt.ylim((r_2 * scale, r_1 * scale))
+    plot_scale = 1.1
+    plt.xlim((r_2 * plot_scale, r_1 * plot_scale))
+    plt.ylim((r_2 * plot_scale, r_1 * plot_scale))
     plt.show()
 
-    plt.plot((hamiltonian_post_minkowski1(solution_pm1.y[:4, :], solution_pm1.y[4:, :], h_params=h_params)
-              / hamiltonian_post_minkowski1(solution_pm1.y[:4, 0], solution_pm1.y[4:, 0], h_params=h_params)),
-             'g-', label='PM1 Energy')
-    plt.plot((hamiltonian_two_body(solution_classical.y[:4, :], solution_classical.y[4:, :], h_params=h_params)
-             / hamiltonian_two_body(solution_classical.y[:4, 0], solution_classical.y[4:, 0], h_params=h_params)),
-             'c-', label='Newton Energy')
-    plt.legend()
-    # generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
-    #                      hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
-    #                      all_h_params=(h_params, h_params, h_params),
-    #                      legends=('PM1', 'PM2', 'Classical'))
+    # plt.plot((hamiltonian_post_minkowski1(solution_pm1.y[:4, :], solution_pm1.y[4:, :], h_params=h_params)
+    #           / hamiltonian_post_minkowski1(solution_pm1.y[:4, 0], solution_pm1.y[4:, 0], h_params=h_params)),
+    #          'g-', label='PM1 Energy')
+    # plt.plot((hamiltonian_two_body(solution_classical.y[:4, :], solution_classical.y[4:, :], h_params=h_params)
+    #          / hamiltonian_two_body(solution_classical.y[:4, 0], solution_classical.y[4:, 0], h_params=h_params)),
+    #          'c-', label='Newton Energy')
+    # plt.legend()
+    generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+                         hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
+                         all_h_params=(h_params, h_params, h_params),
+                         legends=('PM1', 'PM2', 'Classical'))
     plt.show()
 
     angular_pm1 = (get_angular_momentum(solution_pm1.y[0:2, :], solution_pm1.y[4:6, :])
