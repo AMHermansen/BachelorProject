@@ -302,13 +302,6 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minim
     G = 1
     h_params = G, mass_1, mass_2
 
-    # solution_pm1 = solve_hamiltonian(hamiltonian=hamiltonian_post_minkowski1,
-    #                                  t_span=t_span, initial=initial, h_params=h_params,
-    #                                  method='DOP853', dense_output=True, max_step=max_step)
-    # solution_classical = solve_hamiltonian(hamiltonian=hamiltonian_two_body,
-    #                                        t_span=t_span, initial=initial, h_params=h_params,
-    #                                        method='DOP853', dense_output=True, max_step=max_step)
-
     solution_pm1, solution_pm2, solution_classical = get_solutions((hamiltonian_post_minkowski1,
                                                                     hamiltonian_post_minkowski2,
                                                                     hamiltonian_two_body),
@@ -337,16 +330,6 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minim
                                    position_pair_coordinates=(((0, 1), (2, 3)), ((0, 1), (2, 3)), ((0, 1), (2, 3))),
                                    momentum_pair_coordinates=(((4, 5), (6, 7)), ((4, 5), (6, 7)), ((4, 5), (6, 7))))
     plt.show()
-
-
-    # plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
-    # plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
-    # plt.legend()
-    # plt.title(f'Two body PM1 {mass_1=} {mass_2=} {b=} {p=}')
-    # plt.xlabel('X-Coordinate [au]')
-    # plt.ylabel('Y-Coordinate [au]')
-    # plt.show()
-
 
 
 def main():
