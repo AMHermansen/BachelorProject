@@ -36,12 +36,13 @@ def generate_split_energy_plot(solutions, hamiltonians, kinetic_energies, all_h_
                           x_label='Time [au]', y_label='Energy [au]', plot_kinetic=True, plot_potential=True):
     all_normalized_kinetic = list()
     all_normalized_potential = list()
+    all_times = list()
     for solution, hamiltonian, kinetic_energy, h_params, label in zip(solutions, hamiltonians, kinetic_energies, all_h_params, legends):
         number_of_coordinates = len(solution.y[:, 0]) // 2
         position_coordinates = solution.y[:number_of_coordinates, :]
         momentum_coordinates = solution.y[number_of_coordinates:, :]
         initial_energy = hamiltonian(solution.y[:number_of_coordinates, 0], solution.y[number_of_coordinates:, 0], h_params)
-        normalized_energy = hamiltonian(position_coordinates, momentum_coordinates, h_params) / initial_energy
+        normalized_energy = hamiltonian(position_coordinates, momentum_coordinates, h_params) / np.abs(initial_energy)
         normalized_kinetic = kinetic_energy(position_coordinates, momentum_coordinates, h_params) / np.abs(initial_energy)
         normalized_potential = normalized_energy - normalized_kinetic
         plt.plot(solution.t, normalized_energy, label=f'{label} Total energy')
@@ -51,10 +52,11 @@ def generate_split_energy_plot(solutions, hamiltonians, kinetic_energies, all_h_
             plt.plot(solution.t, normalized_potential, label=f'{label} Potential energy')
         all_normalized_kinetic.append(normalized_kinetic)
         all_normalized_potential.append(normalized_potential)
+        all_times.append(solution.t)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.legend()
-    return all_normalized_kinetic, all_normalized_potential
+    return all_normalized_kinetic, all_normalized_potential, all_times
 
 
 def generate_angular_momentum_plot(solutions, legends, position_pair_coordinates, momentum_pair_coordinates,
@@ -108,6 +110,14 @@ def get_perihelion_shift(solution, shift=0):
     return phi[perihelion_shifted]
 
 
+def time_averaged_mean(array, time):
+    number_of_elements = len(array)
+    total_time = time[-1] - time[0]
+    indices = np.arange(number_of_elements - 1)
+    time_averaged_values = array[indices] * (time[indices + 1] - time[indices]) / total_time
+    return np.sum(time_averaged_values)
+
+
 def hamiltonian_post_minkowski1(positions, momenta, h_params):
     """
     :param positions: Positions of the particles. First two are for the first object, last 2 are for second object.
@@ -123,7 +133,7 @@ def hamiltonian_post_minkowski1(positions, momenta, h_params):
     distance = ((positions[0] - positions[2])**2 + (positions[1] - positions[3])**2) ** 0.5
     c_1 = mass_1**2 * mass_2**2 - 2 * (energy_1 * energy_2 + momentum_abs_sq)**2
 
-    return energy_1 + energy_2 + (G * c_1) / (energy_1 * energy_2 * distance)
+    return energy_1 + energy_2 + (G * c_1) / (energy_1 * energy_2 * distance) - mass_1 - mass_2
 
 
 def hamiltonian_post_minkowski2(positions, momenta, h_params):
@@ -144,7 +154,7 @@ def hamiltonian_post_minkowski2(positions, momenta, h_params):
     c_mass_2 = 3 * mass_2 ** 2 * (mass_1 ** 2 * mass_2 ** 2 - 5 * dotted_momenta ** 2)
     energy_total = energy_1 + energy_2
     xi = energy_1 * energy_2 / (energy_total ** 2)
-    return (energy_1 + energy_2
+    return (energy_1 + energy_2 - mass_1 - mass_2
             + (G * c_1) / (energy_1 * energy_2 * distance)
             + G ** 2 / (distance ** 2 * energy_1 * energy_2) * ((c_mass_1 / mass_1 + c_mass_2 / mass_2) / 4
                                                                 + (c_1**2 * (xi - 1) / (2 * energy_total**3 * xi**2)
@@ -169,7 +179,9 @@ def hamiltonian_sr_newton_pot(positions, momenta, h_params):
 
 def hamiltonian_sr_kinetic(positions, momenta, h_params):
     G, mass_1, mass_2 = h_params
-    return (mass_1**2 + momenta[0]**2 + momenta[1]**2)**0.5 + (mass_2**2 + momenta[2]**2 + momenta[3]**2)**0.5
+    energy_1 = (mass_1**2 + momenta[0]**2 + momenta[1]**2)**0.5 - mass_1
+    energy_2 = (mass_2**2 + momenta[2]**2 + momenta[3]**2)**0.5 - mass_2
+    return energy_1 + energy_2
 
 
 def hamiltonian_newton_kinetic(positions, momenta, h_params):
@@ -177,17 +189,15 @@ def hamiltonian_newton_kinetic(positions, momenta, h_params):
     return (momenta[0]**2 + momenta[1]**2) / (2 * mass_1) + (momenta[2]**2 + momenta[3]**2) / (2 * mass_2)
 
 
-def post_minkowski_analysis_bound_orbit():
-    t_span = (0, 4*10**5)
-    max_step = t_span[1] / 1000
-    r_1 = 10**3
-    r_2 = -10**3
-    mass_1 = 1
-    mass_2 = 1
-    G = 1
+def post_minkowski_analysis_bound_orbit(r, p, t_span, mass_1, mass_2=1., min_n_steps=10 ** 3, G=1):
+    factor_1 = mass_2 / (mass_1 + mass_2)
+    factor_2 = - mass_1 / (mass_1 + mass_2)
+    r_1 = factor_1 * r
+    r_2 = factor_2 * r
+    max_step = t_span[1] / min_n_steps
+
     h_params = G, mass_2, mass_1
-    p_1 = 0.008
-    initial = np.array([r_1, 0, r_2, 0, 0, p_1, 0, -p_1])
+    initial = np.array([r_1, 0, r_2, 0, 0, p, 0, -p])
 
     solution_pm1, solution_pm2, solution_classical = get_solutions((hamiltonian_post_minkowski1,
                                                                     hamiltonian_post_minkowski2,
@@ -206,8 +216,20 @@ def post_minkowski_analysis_bound_orbit():
                                  ('Newton Particle1', 'Newton Particle2')),
                         x_indices=(0, 2), y_indices=(1, 3))
     plot_scale = 1.1
+    plt.title('PM1 Problems')
     plt.xlim((r_2 * plot_scale, r_1 * plot_scale))
     plt.ylim((r_2 * plot_scale, r_1 * plot_scale))
+    plt.show()
+
+    generate_orbit_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+                        legends=(('PM1 Particle1', 'PM1 Particle2'),
+                                 ('PM2 Particle1', 'PM2 Particle2'),
+                                 ('Newton Particle1', 'Newton Particle2')),
+                        x_indices=(0, 2), y_indices=(1, 3))
+    plot_scale2 = 10
+    plt.title('PM1 Problems zoomed out')
+    plt.xlim((r_2 * plot_scale2, r_1 * plot_scale2))
+    plt.ylim((r_2 * plot_scale2, r_1 * plot_scale2))
     plt.show()
 
     generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical, solution_pm1, solution_pm2),
@@ -216,23 +238,31 @@ def post_minkowski_analysis_bound_orbit():
                          legends=('PM1', 'PM2', 'Classical'))
     plt.show()
 
-    normalized_kinetic, normalized_potential = generate_split_energy_plot(solutions=(solution_pm1,
+    normalized_kinetic, normalized_potential, all_times = generate_split_energy_plot(solutions=(solution_pm1,
                                                                                      solution_pm2,
-                                                                                     solution_classical,
-                                                                                     solution_pm1,
-                                                                                     solution_pm2),
-                                                                          hamiltonians=(hamiltonian_post_minkowski1,
-                                                                                        hamiltonian_post_minkowski2,
-                                                                                        hamiltonian_two_body),
-                                                                          kinetic_energies=(hamiltonian_sr_kinetic,
-                                                                                            hamiltonian_sr_kinetic,
-                                                                                            hamiltonian_newton_kinetic),
-                                                                          all_h_params=(h_params, h_params, h_params),
-                                                                          legends=('PM1', 'PM2', 'classical'))
+                                                                                     solution_classical),
+                                                                                     hamiltonians=(
+                                                                                     hamiltonian_post_minkowski1,
+                                                                                     hamiltonian_post_minkowski2,
+                                                                                     hamiltonian_two_body),
+                                                                                     kinetic_energies=(
+                                                                                     hamiltonian_sr_kinetic,
+                                                                                     hamiltonian_sr_kinetic,
+                                                                                     hamiltonian_newton_kinetic),
+                                                                                     all_h_params=(
+                                                                                     h_params, h_params, h_params),
+                                                                                     legends=('PM1', 'PM2', 'classical')
+                                                                                     )
     plt.show()
 
-    # print(f'Average kinetic: {np.mean(normalized_kinetic) :.4f}')
-    # print(f'Average potential: {np.mean(normalized_potential) :.4f}')
+    for kinetic, potential, times, label in zip(normalized_kinetic,
+                                                normalized_potential,
+                                                all_times,
+                                                ['pm1', 'pm2', 'classical']):
+        print(f'{label} Average kinetic: {np.mean(kinetic)}')
+        print(f'{label} Time average kinetic {time_averaged_mean(kinetic, times)}')
+        print(f'{label} Average potential: {np.mean(potential)}')
+        print(f'{label} Time average potential {time_averaged_mean(potential, times)}')
 
     generate_angular_momentum_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
                                    legends=('PM1', 'PM2', 'Classical'),
@@ -261,9 +291,7 @@ def post_minkowski_analysis_bound_orbit():
               (get_perihelion_shift(solution=solution_pm2, shift=shift) - pred_delta_phi) / pred_delta_phi)
 
 
-def post_minkowski_analysis_scattering(r, b, p, mass_1, mass_2=1.):
-    t_span = (0, 2*10**5)
-    minimal_steps = 10**4
+def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_steps=10**3):
     max_step = t_span[1] / minimal_steps
     factor_1 = mass_2 / (mass_1 + mass_2)
     factor_2 = - mass_1 / (mass_1 + mass_2)
@@ -274,29 +302,57 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, mass_2=1.):
     G = 1
     h_params = G, mass_1, mass_2
 
-    solution_pm1 = solve_hamiltonian(hamiltonian=hamiltonian_post_minkowski1,
-                                     t_span=t_span, initial=initial, h_params=h_params,
-                                     method='DOP853', dense_output=True, max_step=max_step)
-    solution_classical = solve_hamiltonian(hamiltonian=hamiltonian_two_body,
-                                           t_span=t_span, initial=initial, h_params=h_params,
-                                           method='DOP853', dense_output=True, max_step=max_step)
-    solution_sr = solve_hamiltonian(hamiltonian=hamiltonian_sr_newton_pot,
-                                    t_span=t_span, initial=initial, h_params=h_params,
-                                    method='DOP853', dense_output=True, max_step=max_step)
+    # solution_pm1 = solve_hamiltonian(hamiltonian=hamiltonian_post_minkowski1,
+    #                                  t_span=t_span, initial=initial, h_params=h_params,
+    #                                  method='DOP853', dense_output=True, max_step=max_step)
+    # solution_classical = solve_hamiltonian(hamiltonian=hamiltonian_two_body,
+    #                                        t_span=t_span, initial=initial, h_params=h_params,
+    #                                        method='DOP853', dense_output=True, max_step=max_step)
 
-    plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
-    plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
-    plt.legend()
-    plt.title(f'Two body PM1 {mass_1=} {mass_2=} {b=} {p=}')
-    plt.xlabel('X-Coordinate [au]')
-    plt.ylabel('Y-Coordinate [au]')
+    solution_pm1, solution_pm2, solution_classical = get_solutions((hamiltonian_post_minkowski1,
+                                                                    hamiltonian_post_minkowski2,
+                                                                    hamiltonian_two_body),
+                                                                   t_span=t_span,
+                                                                   initial=initial,
+                                                                   h_params=h_params,
+                                                                   method='DOP853',
+                                                                   dense_output=True,
+                                                                   max_step=max_step
+                                                                   )
+    generate_orbit_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+                        legends=(('PM1 Particle1', 'PM1 Particle2'),
+                                 ('PM2 Particle1', 'PM2 Particle2'),
+                                 ('Newton Particle1', 'Newton Particle2')),
+                        x_indices=(0, 2), y_indices=(1, 3))
+    plt.show()
+
+    generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical, solution_pm1, solution_pm2),
+                         hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
+                         all_h_params=(h_params, h_params, h_params),
+                         legends=('PM1', 'PM2', 'Classical'))
+    plt.show()
+
+    generate_angular_momentum_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
+                                   legends=('PM1', 'PM2', 'Classical'),
+                                   position_pair_coordinates=(((0, 1), (2, 3)), ((0, 1), (2, 3)), ((0, 1), (2, 3))),
+                                   momentum_pair_coordinates=(((4, 5), (6, 7)), ((4, 5), (6, 7)), ((4, 5), (6, 7))))
     plt.show()
 
 
+    # plt.plot(solution_pm1.y[0, :], solution_pm1.y[1, :], 'r-', label='particle 1 PM1')
+    # plt.plot(solution_pm1.y[2, :], solution_pm1.y[3, :], 'b-', label='particle 2 PM1')
+    # plt.legend()
+    # plt.title(f'Two body PM1 {mass_1=} {mass_2=} {b=} {p=}')
+    # plt.xlabel('X-Coordinate [au]')
+    # plt.ylabel('Y-Coordinate [au]')
+    # plt.show()
+
+
+
 def main():
-    post_minkowski_analysis_bound_orbit()
+    post_minkowski_analysis_bound_orbit(r=8 * 10**1, p=0.06, t_span=(0, 2.5 * 10**3), mass_1=1)
     # m = 10**(-4)
-    # post_minkowski_analysis_scattering(r=10**4, b=10**2, p=0.5*m, mass_1=m, mass_2=10.)
+    # post_minkowski_analysis_scattering(r=10**4, b=10**2, p=0.5*m, mass_1=m, t_span=(0, 10**5), mass_2=10.)
     # post_minkowski_analysis_scattering(r=10 ** 4, b=10 ** 2, p=5*m, mass_1=m, mass_2=10**3)
     pass
 
