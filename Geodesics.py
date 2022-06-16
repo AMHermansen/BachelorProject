@@ -102,7 +102,7 @@ def custom_metric_test():
         $p_\mu p_\nu g^{\mu \nu} = 1$. Lightlike isn't implemented.
         geodesic is to be calculated.
         :param steps: The number of steps, that are used in the Fantasy integrator.
-        :param return_cartesian: If the coordiantes returned are cartesian.
+        :param return_cartesian: If the coordinates returned are cartesian.
         (Only works if the original coordinates are spherical)
         :param pos_3 toggles if the initial condition is a 3-position or 4-position
         :param momentum_3 toggles if the initial condition is a 3-momentum or 4-momentum
