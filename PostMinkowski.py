@@ -176,10 +176,18 @@ def get_total_angular_momentum(solution, position_pair_coordinates, momentum_pai
 
 
 def get_gamma_factor(positions, momenta, hamiltonian, h_params):
+    """
+    Formula verified. 05/07/22
+    :param positions: Position for the hamiltonian
+    :param momenta: momentum for the hamiltonian
+    :param hamiltonian: The hamiltonian for which the gamma factor is to be calculated. (Used for total energy)
+    :param h_params: Parameters for the hamiltonian
+    :return: Relativistic gamma_factor.
+    """
     G, mass_1, mass_2 = h_params
     no_mass_energy = hamiltonian(positions=positions, momenta=momenta, h_params=h_params)[0]
     energy = no_mass_energy + mass_1 + mass_2
-    return (energy**2 - mass_1**2 - mass_2**2) / (2 * mass_1 * mass_2)
+    return (energy ** 2 - mass_1 ** 2 - mass_2 ** 2) / (2 * mass_1 * mass_2)
 
 
 def split_position_momentum(solution):
@@ -188,23 +196,46 @@ def split_position_momentum(solution):
 
 
 def scattering_classical(solution, h_params):
-    pass
+    G, mass_1, mass_2 = h_params
+    reduced_mass = (mass_1 ** (-1) + mass_2 ** (-1)) ** (-1)
+    b = solution.y[1, 0] - solution.y[3, 0]
+    v_infinity = (solution.y[4, 0] / mass_1 - solution.y[6, 0] / mass_2)
+    return 2 * np.arctan(G * (mass_1 + mass_2) / (v_infinity ** 2 * b))
 
 
 def scattering_pm1(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):
+    """
+    Verified formula. 05/07/22
+    :param solution: The solution for which the theoretical scattering is to be computed. (Need the initial values)
+    :param hamiltonian: The Hamiltonian for which the theoretical scattering is to be computed. Should be compatible be
+    compatible with solution.
+    :param h_params: Parameters for Hamiltonian
+    :param position_pair_coordinates: List of pairs of (x,y) position coordinates.
+    :param momentum_pair_coordinates: List of pairs of (x,y) momentum coordinates
+    :return: Theoretical post Minkowskian scattering angle to first order.
+    """
     positions, momenta = split_position_momentum(solution=solution)
     gamma_factor = get_gamma_factor(positions=positions, momenta=momenta, hamiltonian=hamiltonian, h_params=h_params)
     total_angular_momentum = get_total_angular_momentum(solution=solution,
                                                         position_pair_coordinates=position_pair_coordinates,
                                                         momentum_pair_coordinates=momentum_pair_coordinates)[0]
     G, mass_1, mass_2 = h_params
-    reduced_mass = (mass_1**(-1) + mass_2**(-1))**(-1)
+    reduced_mass = (mass_1 ** (-1) + mass_2 ** (-1)) ** (-1)
     mass_sum = mass_1 + mass_2
-    chi_1 = (2 * gamma_factor**2 - 1) / (gamma_factor**2 - 1)**0.5
+    chi_1 = (2 * gamma_factor ** 2 - 1) / (gamma_factor ** 2 - 1) ** 0.5
     return (chi_1 * (G * mass_sum * reduced_mass / total_angular_momentum)) * 2
 
 
 def scattering_pm2(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):
+    """
+    Verified formula. 05/07/22
+    :param solution: The solution for which the theoretical scattering angle is to be compouted.
+    :param hamiltonian: The Hamiltonian for which the theoretical scattering angle is to be computed.
+    :param h_params: Parameters of the Hamiltonian.
+    :param position_pair_coordinates: List of (x,y) position coordinate pairs.
+    :param momentum_pair_coordinates: List of (x,y) momentum coordinate pairs
+    :return: Post Minkowskian scattering angle to 2nd order
+    """
     G, mass_1, mass_2 = h_params
     positions, momenta = split_position_momentum(solution=solution)
     no_mass_energy = hamiltonian(positions=positions, momenta=momenta, h_params=h_params)[0]
@@ -213,7 +244,7 @@ def scattering_pm2(solution, hamiltonian, h_params, position_pair_coordinates, m
     total_angular_momentum = get_total_angular_momentum(solution=solution,
                                                         position_pair_coordinates=position_pair_coordinates,
                                                         momentum_pair_coordinates=momentum_pair_coordinates)[0]
-    reduced_mass = (mass_1**(-1) + mass_2**(-1))**(-1)
+    reduced_mass = (mass_1 ** (-1) + mass_2 ** (-1)) ** (-1)
     mass_sum = mass_1 + mass_2
     scattering_sum_factor = G * mass_sum * reduced_mass / total_angular_momentum
     chi_1 = (2 * gamma_factor**2 - 1) / (gamma_factor**2 - 1)**0.5
@@ -260,7 +291,11 @@ def scattering_angle(solution, position_coordinates):
     final_y = solution.y[position_coordinates[1], -1]
     initial_angle = np.arctan2(initial_y, initial_x)
     final_angle = np.arctan2(final_y, final_x)
-    return initial_angle, final_angle
+    return initial_angle, final_angle + 2 * np.pi
+
+
+def get_scattering(angle_tuple):
+    return (angle_tuple[1] - angle_tuple[0]) - np.pi
 
 
 def time_averaged_mean(array, time):
@@ -336,7 +371,6 @@ def post_minkowski_analysis_bound_orbit(r, p, t_span, mass_1, mass_2=1., min_n_s
                                                                                      legends=('PM1', 'PM2', 'classical')
                                                                                      )
     plt.show()
-
 
     # Plotting average energies
     # for kinetic, potential, times, label in zip(normalized_kinetic,
@@ -430,25 +464,39 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minim
                                    position_pair_coordinates=(((0, 1), (2, 3)), ((0, 1), (2, 3)), ((0, 1), (2, 3))),
                                    momentum_pair_coordinates=(((4, 5), (6, 7)), ((4, 5), (6, 7)), ((4, 5), (6, 7))))
     plt.show()
-    print("pm1 scattering angle: ", scattering_angle(solution=solution_pm1, position_coordinates=(0, 1)))
-    print("pm2 scattering angle: ", scattering_angle(solution=solution_pm2, position_coordinates=(0, 1)))
-    print("Classical scattering angle: ", scattering_angle(solution=solution_classical, position_coordinates=(0, 1)))
+    scattering_angle_pm1 = scattering_angle(solution=solution_pm1, position_coordinates=(0, 1))
+    scattering_angle_pm2 = scattering_angle(solution=solution_pm2, position_coordinates=(0, 1))
+    scattering_angle_classical = scattering_angle(solution=solution_classical, position_coordinates=(0, 1))
 
-    print("Theoretical scattering pm1: ", scattering_pm1(solution=solution_pm1,
+    print(f'{scattering_angle_pm1=}')
+    print(f'{scattering_angle_pm2=}')
+    print(f'{scattering_angle_classical=}')
+
+    print('pm1 scattering angle: ', get_scattering(scattering_angle_pm1))
+    print('pm2 scattering angle: ', get_scattering(scattering_angle_pm2))
+    print('Classical scattering angle: ', get_scattering(scattering_angle_classical))
+
+    print('Theoretical scattering pm1: ', scattering_pm1(solution=solution_pm1,
                                                          hamiltonian=hamiltonian_post_minkowski1,
                                                          h_params=h_params,
                                                          position_pair_coordinates=((0, 1), (2, 3)),
                                                          momentum_pair_coordinates=((4, 5), (6, 7))))
-    print("Theoretical scattering pm2: ", scattering_pm1(solution=solution_pm2,
+    print('Theoretical scattering pm2: ', scattering_pm2(solution=solution_pm2,
                                                          hamiltonian=hamiltonian_post_minkowski2,
                                                          h_params=h_params,
                                                          position_pair_coordinates=((0, 1), (2, 3)),
                                                          momentum_pair_coordinates=((4, 5), (6, 7))))
+    print('Theoretical scattering classical: ', scattering_classical(solution=solution_classical, h_params=h_params))
+
 
 def main():
     # post_minkowski_analysis_bound_orbit(r=8 * 10**1, p=0.08, t_span=(0, 7.5 * 10**3), mass_1=1)
-    m = 10**(-4)
-    post_minkowski_analysis_scattering(r=10**4, b=2*10**2, p=0.7*m, mass_1=m, t_span=(0, 4*10**4), mass_2=10.)
+    m = 10 ** (-4)
+    post_minkowski_analysis_scattering(r=10 ** 4, b=1.5 * 10 ** 2, p=0.71 * m, mass_1=m, t_span=(0, 4 * 10 ** 4),
+                                       mass_2=10.)  # Sprednings_vinkler
+    m = 10 ** (-5)
+    post_minkowski_analysis_scattering(r=10 ** 4, b=1.5 * 10 ** 1, p=0.71 * m, mass_1=m, t_span=(0, 4 * 10 ** 4),
+                                       mass_2=1.)
     # post_minkowski_analysis_scattering(r=10 ** 4, b=10 ** 2, p=5*m, mass_1=m, mass_2=10**3)
     pass
 

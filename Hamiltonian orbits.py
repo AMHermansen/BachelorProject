@@ -5,6 +5,7 @@ from einsteinpy.utils.dual import _deriv
 from scipy.integrate import solve_ivp
 from scipy.signal import argrelextrema
 
+
 def convert_to_dual(positions, momenta):
     positions_dual = list()
     momenta_dual = list()
