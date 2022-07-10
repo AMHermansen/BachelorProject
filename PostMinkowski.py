@@ -35,7 +35,7 @@ def hamiltonian_post_minkowski2(positions, momenta, h_params):
     energy_2 = (mass_2 ** 2 + momenta[2] ** 2 + momenta[3] ** 2) ** 0.5
     dotted_momenta = energy_1 * energy_2 - momenta[0] * momenta[2] - momenta[1] * momenta[3]
     distance = ((positions[0] - positions[2])**2 + (positions[1] - positions[3])**2) ** 0.5
-    c_1 = mass_1**2 * mass_2**2 - 2 * (energy_1 * energy_2 - momenta[0] * momenta[2] - momenta[1] * momenta[3])**2
+    c_1 = mass_1 ** 2 * mass_2 ** 2 - 2 * (energy_1 * energy_2 - momenta[0] * momenta[2] - momenta[1] * momenta[3]) ** 2
     c_mass_1 = 3 * mass_1 ** 2 * (mass_1 ** 2 * mass_2 ** 2 - 5 * dotted_momenta ** 2)
     c_mass_2 = 3 * mass_2 ** 2 * (mass_1 ** 2 * mass_2 ** 2 - 5 * dotted_momenta ** 2)
     energy_total = energy_1 + energy_2
@@ -43,15 +43,50 @@ def hamiltonian_post_minkowski2(positions, momenta, h_params):
     return (energy_1 + energy_2 - mass_1 - mass_2
             + (G * c_1) / (energy_1 * energy_2 * distance)
             + G ** 2 / (distance ** 2 * energy_1 * energy_2) * ((c_mass_1 / mass_1 + c_mass_2 / mass_2) / 4
-                                                                + (c_1**2 * (xi - 1) / (2 * energy_total**3 * xi**2)
-                                                                   - 4*c_1 * dotted_momenta / (energy_total * xi))))
+                                                                + (c_1 ** 2 * (xi - 1) / (
+                                2 * energy_total ** 3 * xi ** 2)
+                                                                   - 4 * c_1 * dotted_momenta / (energy_total * xi))))
+
+
+def hamiltonian_post_minkowski3(positions, momenta, h_params):
+    G, mass_1, mass_2 = h_params
+    m = mass_1 + mass_2
+    energy_1 = (mass_1 ** 2 + momenta[0] ** 2 + momenta[1] ** 2) ** 0.5
+    energy_2 = (mass_2 ** 2 + momenta[2] ** 2 + momenta[3] ** 2) ** 0.5
+    E = energy_1 + energy_2
+    gamma = E / m
+    dotted_momenta = energy_1 * energy_2 - momenta[0] * momenta[2] - momenta[1] * momenta[3]
+    sigma = dotted_momenta / (mass_1 * mass_2)
+    distance = ((positions[0] - positions[2]) ** 2 + (positions[1] - positions[3]) ** 2) ** 0.5
+    xi = energy_1 * energy_2 / (E ** 2)
+    nu = mass_1 * mass_2 / m ** 2
+    c_1 = nu ** 2 * m ** 2 / (gamma ** 2 * xi) * (1 - 2 * sigma ** 2)
+    c_2 = ((nu ** 2 * m ** 3 / (gamma ** 2 * xi))
+           * (3 / 4 * (1 - 5 * sigma ** 2)
+              - 4 * nu * sigma * (1 - 2 * sigma ** 2) / (gamma * xi)
+              - nu ** 2 * (1 - xi) * (1 - 2 * sigma ** 2) ** 2 / (2 * gamma ** 3 * xi ** 2)))
+    c_3 = ((nu ** 2 * m ** 4 / (gamma ** 2 * xi))
+           * (1 / 12 * (3 - 6 * nu + 206 * nu * sigma - 54 * sigma ** 2 + 108 * nu * sigma ** 2 + 4 * nu * sigma ** 3)
+              - (4 * nu * (3 + 12 * sigma ** 2 - 4 * sigma ** 4) * np.log(
+                        ((sigma - 1) / 2) ** 0.5 + ((sigma + 1) / 2) ** 0.5)
+                 / (sigma ** 2 - 1) ** 0.5)
+              - 3 * nu * gamma * (1 - 2 * sigma ** 2) * (1 - 5 * sigma ** 2) / (2 * (1 + gamma) * (1 + sigma))
+              - 3 * nu * sigma * (7 - 20 * sigma ** 2) / (2 * gamma * xi)
+              - (nu ** 2 * (
+                                3 + 8 * gamma - 3 * xi - 15 * sigma ** 2 - 80 * gamma * sigma ** 2 + 15 * xi * sigma ** 2) * (
+                             1 - 2 * sigma ** 2)
+                 / (4 * gamma ** 3 * xi ** 2))
+              + 2 * nu ** 3 * (3 - 4 * xi) * sigma * (1 - 2 * sigma ** 2) ** 2 / (gamma ** 4 * xi ** 3)
+              + nu ** 4 * (1 - 2 * xi) * (1 - 2 * sigma ** 2) ** 3 / (2 * gamma ** 6 * xi ** 4)))
+    return (energy_1 + energy_2 - mass_1 - mass_2
+            + c_1 * (G / distance) + c_2 * (G / distance) ** 2 + c_3 * (G / distance) ** 3)
 
 
 def hamiltonian_two_body(positions, momenta, h_params):
     G, mass_1, mass_2 = h_params
-    energy_1 = (momenta[0]**2 + momenta[1]**2) / (2 * mass_1)
-    energy_2 = (momenta[2]**2 + momenta[3]**2) / (2 * mass_2)
-    distance = ((positions[0] - positions[2])**2 + (positions[1] - positions[3])**2)**0.5
+    energy_1 = (momenta[0] ** 2 + momenta[1] ** 2) / (2 * mass_1)
+    energy_2 = (momenta[2] ** 2 + momenta[3] ** 2) / (2 * mass_2)
+    distance = ((positions[0] - positions[2]) ** 2 + (positions[1] - positions[3]) ** 2) ** 0.5
     return energy_1 + energy_2 - G * mass_1 * mass_2 / distance
 
 
@@ -372,7 +407,7 @@ def post_minkowski_analysis_bound_orbit(r, p, t_span, mass_1, mass_2=1., min_n_s
                                                                                      )
     plt.show()
 
-    # Plotting average energies
+    # printing average energies
     # for kinetic, potential, times, label in zip(normalized_kinetic,
     #                                             normalized_potential,
     #                                             all_times,
@@ -425,62 +460,83 @@ def post_minkowski_analysis_bound_orbit(r, p, t_span, mass_1, mass_2=1., min_n_s
               (get_perihelion_shift(solution=solution_pm2, shift=shift) - pred_delta_phi) / pred_delta_phi)
 
 
-def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_steps=10**3):
+def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_steps=10 ** 3, no_pm1=False):
     max_step = t_span[1] / minimal_steps
     factor_1 = mass_2 / (mass_1 + mass_2)
     factor_2 = - mass_1 / (mass_1 + mass_2)
-    initial = np.array([factor_1 * np.sqrt(r**2 - b**2), factor_1 * b,  # Position 1
-                        factor_2 * np.sqrt(r**2 - b**2), factor_2 * b,  # Position 2
+    initial = np.array([factor_1 * np.sqrt(r ** 2 - b ** 2), factor_1 * b,  # Position 1
+                        factor_2 * np.sqrt(r ** 2 - b ** 2), factor_2 * b,  # Position 2
                         - p, 0,  # Momentum 1
                         p, 0])  # Momentum 2
     G = 1
     h_params = G, mass_1, mass_2
 
-    solution_pm1, solution_pm2, solution_classical = get_solutions((hamiltonian_post_minkowski1,
-                                                                    hamiltonian_post_minkowski2,
-                                                                    hamiltonian_two_body),
-                                                                   t_span=t_span,
-                                                                   initial=initial,
-                                                                   h_params=h_params,
-                                                                   method='DOP853',
-                                                                   dense_output=True,
-                                                                   max_step=max_step
-                                                                   )
-    generate_orbit_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
-                        legends=(('PM1 Particle1', 'PM1 Particle2'),
-                                 ('PM2 Particle1', 'PM2 Particle2'),
-                                 ('Newton Particle1', 'Newton Particle2')),
+    all_solutions = get_solutions((hamiltonian_post_minkowski1, hamiltonian_post_minkowski2,
+                                   hamiltonian_post_minkowski3, hamiltonian_two_body),
+                                  t_span=t_span, initial=initial, h_params=h_params,
+                                  method='DOP853', dense_output=True, max_step=max_step
+                                  )
+    all_hamiltonians = [hamiltonian_post_minkowski1, hamiltonian_post_minkowski2,
+                        hamiltonian_post_minkowski3, hamiltonian_two_body]
+    solution_names = ('PM1', 'PM2', 'PM3', 'Newton')
+
+    all_hamiltonians_no_pm1 = all_hamiltonians[1:]
+    all_solutions_no_pm1 = all_solutions[1:]
+    solution_names_no_pm1 = solution_names[1:]
+
+    used_solutions, used_hamiltonians, used_names = (
+        (all_solutions_no_pm1, all_hamiltonians_no_pm1, solution_names_no_pm1)
+        if no_pm1
+        else (all_solutions, all_hamiltonians, solution_names))
+
+    used_h_params = [h_params for _ in used_names]
+
+    orbit_labels = [(f'{sol_name} Particle1', f'{sol_name} Particle2') for sol_name in used_names]
+    generate_orbit_plot(solutions=used_solutions,
+                        legends=orbit_labels,
                         x_indices=(0, 2), y_indices=(1, 3))
     plt.show()
 
-    generate_energy_plot(solutions=(solution_pm1, solution_pm2, solution_classical, solution_pm1, solution_pm2),
-                         hamiltonians=(hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_two_body),
-                         all_h_params=(h_params, h_params, h_params),
-                         legends=('PM1', 'PM2', 'Classical'))
+    generate_energy_plot(solutions=used_solutions,
+                         hamiltonians=used_hamiltonians,
+                         all_h_params=used_h_params,
+                         legends=used_names
+                         )
     plt.show()
 
-    generate_angular_momentum_plot(solutions=(solution_pm1, solution_pm2, solution_classical),
-                                   legends=('PM1', 'PM2', 'Classical'),
-                                   position_pair_coordinates=(((0, 1), (2, 3)), ((0, 1), (2, 3)), ((0, 1), (2, 3))),
-                                   momentum_pair_coordinates=(((4, 5), (6, 7)), ((4, 5), (6, 7)), ((4, 5), (6, 7))))
+    position_pairs = [((0, 1), (2, 3)) for _ in used_names]
+    momentum_pairs = [((4, 5), (6, 7)) for _ in used_names]
+    generate_angular_momentum_plot(solutions=used_solutions,
+                                   legends=used_names,
+                                   position_pair_coordinates=position_pairs,
+                                   momentum_pair_coordinates=momentum_pairs
+                                   )
     plt.show()
-    scattering_angle_pm1 = scattering_angle(solution=solution_pm1, position_coordinates=(0, 1))
+    solution_pm1, solution_pm2, solution_pm3, solution_classical = all_solutions
+    if not no_pm1:
+        scattering_angle_pm1 = scattering_angle(solution=solution_pm1, position_coordinates=(0, 1))
     scattering_angle_pm2 = scattering_angle(solution=solution_pm2, position_coordinates=(0, 1))
+    scattering_angle_pm3 = scattering_angle(solution=solution_pm3, position_coordinates=(0, 1))
     scattering_angle_classical = scattering_angle(solution=solution_classical, position_coordinates=(0, 1))
 
-    print(f'{scattering_angle_pm1=}')
+    if not no_pm1:
+        print(f'{scattering_angle_pm1=}')
     print(f'{scattering_angle_pm2=}')
+    print(f'{scattering_angle_pm3=}')
     print(f'{scattering_angle_classical=}')
 
-    print('pm1 scattering angle: ', get_scattering(scattering_angle_pm1))
+    if not no_pm1:
+        print('pm1 scattering angle: ', get_scattering(scattering_angle_pm1))
     print('pm2 scattering angle: ', get_scattering(scattering_angle_pm2))
+    print('pm3 scattering angle: ', get_scattering(scattering_angle_pm3))
     print('Classical scattering angle: ', get_scattering(scattering_angle_classical))
 
-    print('Theoretical scattering pm1: ', scattering_pm1(solution=solution_pm1,
-                                                         hamiltonian=hamiltonian_post_minkowski1,
-                                                         h_params=h_params,
-                                                         position_pair_coordinates=((0, 1), (2, 3)),
-                                                         momentum_pair_coordinates=((4, 5), (6, 7))))
+    if not no_pm1:
+        print('Theoretical scattering pm1: ', scattering_pm1(solution=solution_pm1,
+                                                             hamiltonian=hamiltonian_post_minkowski1,
+                                                             h_params=h_params,
+                                                             position_pair_coordinates=((0, 1), (2, 3)),
+                                                             momentum_pair_coordinates=((4, 5), (6, 7))))
     print('Theoretical scattering pm2: ', scattering_pm2(solution=solution_pm2,
                                                          hamiltonian=hamiltonian_post_minkowski2,
                                                          h_params=h_params,
@@ -494,9 +550,8 @@ def main():
     m = 10 ** (-4)
     post_minkowski_analysis_scattering(r=10 ** 4, b=1.5 * 10 ** 2, p=0.71 * m, mass_1=m, t_span=(0, 4 * 10 ** 4),
                                        mass_2=10.)  # Sprednings_vinkler
-    m = 10 ** (-5)
-    post_minkowski_analysis_scattering(r=10 ** 4, b=1.5 * 10 ** 1, p=0.71 * m, mass_1=m, t_span=(0, 4 * 10 ** 4),
-                                       mass_2=1.)
+    # m = 10 ** (-5)
+    # post_minkowski_analysis_scattering(r=10 ** 3, b=0.8 * 10 ** 1, p=0.767499 * m, mass_1=m, t_span=(0, 2 * 10 ** 3), mass_2=1., no_pm1=True)
     # post_minkowski_analysis_scattering(r=10 ** 4, b=10 ** 2, p=5*m, mass_1=m, mass_2=10**3)
     pass
 
