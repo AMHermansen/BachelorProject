@@ -5,64 +5,6 @@ from Utilities import solve_hamiltonian
 from Hamiltonians import (hamiltonian_ho, hamiltonian_orbit, hamiltonian_double_orbit,
                           hamiltonian_einstein_infeld_hoffmann, hamiltonian_reduced_two_body)
 
-# def convert_to_dual(positions, momenta):
-#     positions_dual = list()
-#     momenta_dual = list()
-#     for position in positions:
-#         positions_dual.append(dual.DualNumber(position, 0.0))
-#
-#     for momentum in momenta:
-#         momenta_dual.append(dual.DualNumber(momentum, 0.0))
-#     return positions_dual, momenta_dual
-#
-#
-# def _diff_hamiltonian_q(hamiltonian, positions, momenta, wrt_q, h_params):
-#     positions_dual, momenta_dual = convert_to_dual(positions=positions, momenta=momenta)
-#     positions_dual[wrt_q].deriv = 1.0
-#     return _deriv(lambda q: hamiltonian(positions_dual, momenta_dual, h_params), positions[wrt_q])
-#
-#
-# def _diff_hamiltonian_p(hamiltonian, positions, momenta, wrt_p, h_params):
-#     positions_dual, momenta_dual = convert_to_dual(positions=positions, momenta=momenta)
-#     momenta_dual[wrt_p].deriv = 1.0
-#     return _deriv(lambda q: hamiltonian(positions_dual, momenta_dual, h_params=h_params), momenta[wrt_p])
-#
-#
-# def _get_hamilton_eq(hamiltonian, positions, momenta, h_params):
-#     assert len(positions) == len(momenta)
-#     hamilton_p_deriv = list()
-#     hamilton_q_deriv = list()
-#     for i in range(len(positions)):
-#         hamilton_p_deriv.append(_diff_hamiltonian_p(hamiltonian=hamiltonian,
-#                                                     positions=positions, momenta=momenta,
-#                                                     wrt_p=i, h_params=h_params))
-#     for i in range(len(momenta)):
-#         hamilton_q_deriv.append(- _diff_hamiltonian_q(hamiltonian=hamiltonian,
-#                                                       positions=positions, momenta=momenta,
-#                                                       wrt_q=i, h_params=h_params))
-#
-#     return np.concatenate([np.array(hamilton_p_deriv), np.array(hamilton_q_deriv)])
-#
-#
-# def hamiltonian_system(t, coordinates, hamiltonian, h_params):
-#     positions = coordinates[:len(coordinates) // 2]
-#     momenta = coordinates[len(coordinates) // 2:]
-#     return _get_hamilton_eq(hamiltonian=hamiltonian, positions=positions, momenta=momenta, h_params=h_params)
-#
-#
-# def solve_hamiltonian(hamiltonian, t_span, initial, h_params, **kwargs):
-#     """"
-#     :param hamiltonian: The hamiltonian that is to solved. Should take the stacked position-momentum
-#     coordinates as input.
-#     :param t_span: The time span for which the solution is calculated.
-#     :param initial: The initial position in phase-space, i.e. a stacked position-momentum np.array
-#     :param h_params: Parameters for the hamiltonian examples could be masses.
-#     :param kwargs: kwargs solve_ivp
-#     :return:
-#     """
-#     return(solve_ivp(lambda t, coord: hamiltonian_system(t, coord, hamiltonian=hamiltonian, h_params=h_params),
-#                      t_span=t_span, y0=initial, **kwargs))
-
 
 def harmonic_oscillator(t_span=(0, 10), initial=np.array([10.0, 0.0]), h_params=np.array([3.0, 2.0])):
     solution = solve_hamiltonian(hamiltonian=hamiltonian_ho, t_span=t_span, initial=initial, h_params=h_params,
