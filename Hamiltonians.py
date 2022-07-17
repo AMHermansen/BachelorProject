@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from Formulas import get_all_f
 
 # Used for control to solve_hamiltonian
 def hamiltonian_ho(positions, momenta, h_params):
