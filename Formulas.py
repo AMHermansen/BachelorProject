@@ -23,18 +23,18 @@ def _get_constants(solution, hamiltonian, h_params, position_pair_coordinates, m
     M = mass_1 + mass_2
     nu = mu / M
     Gamma = E / M  # Not to confuse with gamma_factor
-    return E, gamma_factor, L, mu, M, nu, Gamma
+    return E, gamma_factor, mu, M, nu, Gamma, L
 
 
-def _get_f1(E, gamma_factor, L, mu, M, nu, Gamma):
+def _get_f1(E, gamma_factor, mu, M, nu, Gamma):
     return 2 * mu**2 * M * (2 * gamma_factor**2 - 1) / Gamma
 
 
-def _get_f2(E, gamma_factor, L, mu, M, nu, Gamma):
+def _get_f2(E, gamma_factor, mu, M, nu, Gamma):
     return 3/2 * mu**2 * M**2 * (5 * gamma_factor**2 - 1) / Gamma
 
 
-def _get_f3(E, gamma_factor, L, mu, M, nu, Gamma):
+def _get_f3(E, gamma_factor, mu, M, nu, Gamma):
     return mu**2 * M**3 * (
            Gamma * (18 * gamma_factor**2 - 1) / 2 - 4 * nu * gamma_factor * (14*gamma_factor**2 + 25) / (3 * Gamma)
            + 3/2 * (Gamma - 1) / (gamma_factor**2 - 1) * (2 * gamma_factor**2 - 1) * (5 * gamma_factor**2 - 1)
@@ -43,10 +43,10 @@ def _get_f3(E, gamma_factor, L, mu, M, nu, Gamma):
     )
 
 
-def get_all_f(E, gamma_factor, L, mu, M, nu, Gamma):
-    return (_get_f1(E, gamma_factor, L, mu, M, nu, Gamma),
-            _get_f2(E, gamma_factor, L, mu, M, nu, Gamma),
-            _get_f3(E, gamma_factor, L, mu, M, nu, Gamma),
+def get_all_f(E, gamma_factor, mu, M, nu, Gamma):
+    return (_get_f1(E, gamma_factor, mu, M, nu, Gamma),
+            _get_f2(E, gamma_factor, mu, M, nu, Gamma),
+            _get_f3(E, gamma_factor, mu, M, nu, Gamma),
             )
 
 
@@ -110,7 +110,7 @@ def scattering_pm3(solution, hamiltonian, h_params, position_pair_coordinates, m
     :return: Post Minkowskian scattering angle to 3rd order
     """
     G, mass_1, mass_2 = h_params
-    E, gamma_factor, L, mu, M, nu, Gamma = _get_constants(solution, hamiltonian, h_params,
+    E, gamma_factor, mu, M, nu, Gamma, L = _get_constants(solution, hamiltonian, h_params,
                                                           position_pair_coordinates, momentum_pair_coordinates)
     scattering_sum_factor = G / L
 
@@ -123,7 +123,7 @@ def scattering_pm3(solution, hamiltonian, h_params, position_pair_coordinates, m
     #     - 8 * nu * (4*gamma_factor**4 - 12*gamma_factor**2 - 3) / (Gamma * (gamma_factor**2 - 1)**0.5)
     #         * np.log(((gamma_factor - 1) / 2)**0.5 + ((gamma_factor + 1) / 2)**0.5)
     # )
-    f_1, f_2, f_3 = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma)
+    f_1, f_2, f_3 = get_all_f(E, gamma_factor, mu, M, nu, Gamma)
     return 2 * (scattering_sum_factor * (f_1 / 2 * p_0) + scattering_sum_factor**2 * (np.pi * f_2 / 4)
                 + scattering_sum_factor**3 * (p_0 * f_3 + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
 

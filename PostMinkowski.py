@@ -445,6 +445,10 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minim
                                                          position_pair_coordinates=((0, 1), (2, 3)),
                                                          momentum_pair_coordinates=((4, 5), (6, 7))))
 
+
+def fake_hamiltonian_bound_analysis()
+
+
 def main():
     # post_minkowski_analysis_bound_orbit(r=8 * 10**1, p=0.08, t_span=(0, 7.5 * 10**3), mass_1=1)
     m = 10**(-4)
