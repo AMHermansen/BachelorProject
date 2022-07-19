@@ -124,7 +124,7 @@ def scattering_pm3(solution, hamiltonian, h_params, position_pair_coordinates, m
     #         * np.log(((gamma_factor - 1) / 2)**0.5 + ((gamma_factor + 1) / 2)**0.5)
     # )
     f_1, f_2, f_3 = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma)
-    return 2 * (scattering_sum_factor * (f_1 / 2 * p_0) + scattering_sum_factor**2 * (np.pi * f_2 / 4)
+    return 2 * (scattering_sum_factor * (f_1 / (2 * p_0)) + scattering_sum_factor**2 * (np.pi * f_2 / 4)
                 + scattering_sum_factor**3 * (p_0 * f_3 + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
 
 
