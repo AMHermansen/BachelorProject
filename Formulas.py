@@ -1,5 +1,5 @@
 import numpy as np
-from Utilities import split_position_momentum, get_gamma_factor, get_total_angular_momentum
+from Utilities import split_position_momentum, get_gamma_factor, get_total_angular_momentum, fake_hamiltonian_setup
 
 
 def scattering_classical(solution, h_params):
@@ -128,6 +128,38 @@ def scattering_pm3(solution, hamiltonian, h_params, position_pair_coordinates, m
                 + scattering_sum_factor**3 * (p_0 * f_3 + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
 
 
+def fake_scattering1(E, gamma_factor, mu, M, nu, Gamma, L, h_params):
+    G, mass_1, mass_2, p_initial = h_params
+    p_0 = mu / Gamma * (gamma_factor**2 - 1)**0.5
+    f_1, f_2, f_3 = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma)
+    scattering_sum_factor = G / L
+    return 2 * (scattering_sum_factor * (f_1 / (2 * p_0)))
+
+
+def fake_scattering2(E, gamma_factor, mu, M, nu, Gamma, L, h_params):
+    G, mass_1, mass_2, p_initial = h_params
+    p_0 = mu / Gamma * (gamma_factor**2 - 1)**0.5
+    f_1, f_2, f_3 = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma)
+    scattering_sum_factor = G / L
+    return 2 * (scattering_sum_factor * (f_1 / (2 * p_0)) + scattering_sum_factor**2 * (np.pi * f_2 / 4))
+
+
+def fake_scattering3(E, gamma_factor, mu, M, nu, Gamma, L, h_params):
+    G, mass_1, mass_2, p_initial = h_params
+    p_0 = mu / Gamma * (gamma_factor**2 - 1)**0.5
+    f_1, f_2, f_3 = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma)
+    scattering_sum_factor = G / L
+    return 2 * (scattering_sum_factor * (f_1 / (2 * p_0)) + scattering_sum_factor**2 * (np.pi * f_2 / 4)
+                + scattering_sum_factor**3 * (p_0 * f_3 + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
+
+
+def all_fake_scattering(positions, momenta, h_params):
+    E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta, h_params=h_params)
+    return (fake_scattering1(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
+            fake_scattering2(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
+            fake_scattering3(E, gamma_factor, mu, M, nu, Gamma, L, h_params),)
+
+
 def theoretical_perihelion_shift(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):
     positions, momenta = split_position_momentum(solution=solution)
     G, mass_1, mass_2 = h_params
@@ -142,5 +174,3 @@ def theoretical_perihelion_shift(solution, hamiltonian, h_params, position_pair_
     return (3 * np.pi
             * (G * mass_sum * reduced_mass / total_angular_momentum)**2
             * (total_energy / mass_sum) * (5 * gamma_factor**2 - 1))
-
-

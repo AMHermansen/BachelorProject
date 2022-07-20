@@ -3,6 +3,7 @@ import einsteinpy.utils.dual as dual
 from einsteinpy.utils.dual import _deriv
 from scipy.integrate import solve_ivp
 from scipy.signal import argrelextrema
+import einsteinpy
 
 
 def convert_to_dual(positions, momenta):
@@ -85,6 +86,23 @@ def get_total_angular_momentum(solution, position_pair_coordinates, momentum_pai
     return total_angular_momentum
 
 
+def fake_hamiltonian_setup(positions, momenta, h_params):
+    G, mass_1, mass_2, p_initial = h_params
+    energy_1 = (mass_1 ** 2 + p_initial ** 2) ** 0.5
+    energy_2 = (mass_2 ** 2 + p_initial ** 2) ** 0.5
+    E = energy_1 + energy_2
+    gamma_factor = (E ** 2 - mass_1 ** 2 - mass_2 ** 2) / (2 * mass_1 * mass_2)
+    mu = (mass_1 ** (-1) + mass_2 ** (-1)) ** (-1)
+    M = mass_1 + mass_2
+    nu = mu / M
+    Gamma = E / M
+    L = (positions[0] * momenta[1] - positions[1] * momenta[0])
+    if isinstance(L, einsteinpy.utils.dual.DualNumber):  # positions and momenta can be dual numbers
+        L = L.val
+
+    return E, gamma_factor, mu, M, nu, Gamma, L
+
+
 def get_gamma_factor(positions, momenta, hamiltonian, h_params):
     """
     Formula verified. 05/07/22
@@ -131,6 +149,24 @@ def scattering_angle(solution, position_coordinates):
     return initial_angle, final_angle + 2 * np.pi
 
 
+def scattering_angle_velocity(solution, position_coordinates):
+    initial_vx = solution.y[position_coordinates[0], 1] - solution.y[position_coordinates[0], 0]
+    initial_vy = solution.y[position_coordinates[1], 1] - solution.y[position_coordinates[1], 0]
+    final_vx = solution.y[position_coordinates[0], -1] - solution.y[position_coordinates[0], -2]
+    final_vy = solution.y[position_coordinates[1], -1] - solution.y[position_coordinates[1], -2]
+    initial_angle = np.arctan2(initial_vy, initial_vx)
+    final_angle = np.arctan2(final_vy, final_vx)
+    return initial_angle + np.pi, final_angle + 2 * np.pi
+
+
+def all_scattering_angle(solutions, position_coordinates):
+    return [scattering_angle(solution=solution, position_coordinates=position_coordinates) for solution in solutions]
+
+
+def all_scattering_angle_velocities(solutions, position_coordinates):
+    return [scattering_angle_velocity(solution, position_coordinates) for solution in solutions]
+
+
 def get_scattering(angle_tuple):
     return (angle_tuple[1] - angle_tuple[0]) - np.pi
 
@@ -141,5 +177,3 @@ def time_averaged_mean(array, time):
     indices = np.arange(number_of_elements - 1)
     time_averaged_values = array[indices] * (time[indices + 1] - time[indices]) / total_time
     return np.sum(time_averaged_values)
-
-

@@ -80,5 +80,3 @@ def generate_angular_momentum_plot(solutions, legends, position_pair_coordinates
     plt.xlabel(x_label)
     plt.ylabel(y_label)
     plt.legend()
-
-

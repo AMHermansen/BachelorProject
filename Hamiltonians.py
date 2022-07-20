@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Formulas import get_all_f
+from Utilities import fake_hamiltonian_setup
+
 
 # Used for control to solve_hamiltonian
 def hamiltonian_ho(positions, momenta, h_params):
@@ -228,19 +230,6 @@ def hamiltonian_post_minkowski3(positions, momenta, h_params):
             + c_1 * (G / distance) + c_2 * (G / distance) ** 2 + c_3 * (G / distance) ** 3)
 
 
-def fake_hamiltonian_setup(positions, momenta, h_params):
-    G, mass_1, mass_2, p_initial = h_params
-    energy_1 = (mass_1 ** 2 + p_initial ** 2) ** 0.5
-    energy_2 = (mass_2 ** 2 + p_initial ** 2) ** 0.5
-    E = energy_1 + energy_2
-    gamma_factor = (E ** 2 - mass_1 ** 2 - mass_2 ** 2) / (2 * mass_1 * mass_2)
-    mu = (mass_1 ** (-1) + mass_2 ** (-1)) ** (-1)
-    M = mass_1 + mass_2
-    nu = mu / M
-    Gamma = E / M
-    return E, gamma_factor, mu, M, nu, Gamma
-
-
 def hamiltonian_fake_pm1(positions, momenta, h_params):  # Need to include initial momentum for gamma_factor
     """
 
@@ -250,11 +239,12 @@ def hamiltonian_fake_pm1(positions, momenta, h_params):  # Need to include initi
     :return:
     """
     G, mass_1, mass_2, p_initial = h_params
-    E, gamma_factor, mu, M, nu, Gamma = fake_hamiltonian_setup(positions=positions, momenta=momenta, h_params=h_params)
-    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma)
-    distance = ((positions[0] - positions[2])**2  + (positions[1] - positions[3])**2)**0.5
-    squared_momentum = momenta[0]**2 + momenta[1]**2 + momenta[2]**2 + momenta[3]**2
-    return squared_momentum - (G / distance) * f_1
+    E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta,
+                                                                  h_params=h_params)
+    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma, L=L)
+    distance = (positions[0] ** 2 + positions[1] ** 2) ** 0.5
+    squared_momentum = momenta[0] ** 2 + momenta[1] ** 2
+    return (squared_momentum - (G / distance) * f_1) / mu
 
 
 def hamiltonian_fake_pm2(positions, momenta, h_params):  # Need to include initial momentum for gamma_factor
@@ -266,11 +256,12 @@ def hamiltonian_fake_pm2(positions, momenta, h_params):  # Need to include initi
     :return:
     """
     G, mass_1, mass_2, p_initial = h_params
-    E, gamma_factor, mu, M, nu, Gamma = fake_hamiltonian_setup(positions=positions, momenta=momenta, h_params=h_params)
-    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma)
-    distance = ((positions[0] - positions[2])**2  + (positions[1] - positions[3])**2)**0.5
-    squared_momentum = momenta[0]**2 + momenta[1]**2 + momenta[2]**2 + momenta[3]**2
-    return squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2
+    E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta,
+                                                                  h_params=h_params)
+    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma, L=L)
+    distance = (positions[0] ** 2 + positions[1] ** 2) ** 0.5
+    squared_momentum = momenta[0] ** 2 + momenta[1] ** 2
+    return (squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2) / mu
 
 
 def hamiltonian_fake_pm3(positions, momenta, h_params):  # Need to include initial momentum for gamma_factor
@@ -282,10 +273,9 @@ def hamiltonian_fake_pm3(positions, momenta, h_params):  # Need to include initi
     :return:
     """
     G, mass_1, mass_2, p_initial = h_params
-    E, gamma_factor, mu, M, nu, Gamma = fake_hamiltonian_setup(positions=positions, momenta=momenta, h_params=h_params)
-    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma)
-    distance = ((positions[0] - positions[2])**2  + (positions[1] - positions[3])**2)**0.5
-    squared_momentum = momenta[0]**2 + momenta[1]**2 + momenta[2]**2 + momenta[3]**2
-    return squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2 - (G / distance)**3 * f_3
-
-
+    E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta,
+                                                                  h_params=h_params)
+    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma, L=L)
+    distance = (positions[0]**2 + positions[1]**2)**0.5
+    squared_momentum = momenta[0]**2 + momenta[1]**2
+    return (squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2 - (G / distance)**3 * f_3) / mu
