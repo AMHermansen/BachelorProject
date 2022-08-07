@@ -43,11 +43,30 @@ def _get_f3(E, gamma_factor, L, mu, M, nu, Gamma):
     )
 
 
-def get_all_f(E, gamma_factor, L, mu, M, nu, Gamma):
-    return (_get_f1(E, gamma_factor, L, mu, M, nu, Gamma),
-            _get_f2(E, gamma_factor, L, mu, M, nu, Gamma),
-            _get_f3(E, gamma_factor, L, mu, M, nu, Gamma),
-            )
+def _get_f3_rr(E, gamma_factor, L, mu, M, nu, Gamma):
+    return - mu**2 * M**3 * (- 3/2 * (2 * gamma_factor**2 - 1) * (5 * gamma_factor**2 - 1)
+                             + Gamma * 2 * (12 * gamma_factor**4 - 10 * gamma_factor**2 + 1) / (gamma_factor**2 - 1)
+                             + 2 * nu / (3 * Gamma) * (2 * gamma_factor * (14 * gamma_factor**2 + 25)
+                                                       - (1 - 2*gamma_factor**2)**2 / (gamma_factor**2 - 1)**2 *
+                                                       (8 - 5*gamma_factor**2) * (gamma_factor**2 - 1)**0.5
+                                                       + (6 * (4 * gamma_factor**4 - 12 * gamma_factor**2 - 3) / (gamma_factor**2 - 1)**0.5
+                                                          - (6 * gamma_factor**3 - 9 * gamma_factor) * (1 - 2 * gamma_factor**2)**2 / (gamma_factor**2 - 1)**2)
+                                                       * np.log(gamma_factor + (gamma_factor**2 - 1)**2)
+                                                      )
+                             )
+
+
+def get_all_f(E, gamma_factor, L, mu, M, nu, Gamma, with_rr=False):
+    if with_rr:
+        return (_get_f1(E, gamma_factor, L, mu, M, nu, Gamma),
+                _get_f2(E, gamma_factor, L, mu, M, nu, Gamma),
+                _get_f3_rr(E, gamma_factor, L, mu, M, nu, Gamma),
+                )
+    else:
+        return (_get_f1(E, gamma_factor, L, mu, M, nu, Gamma),
+                _get_f2(E, gamma_factor, L, mu, M, nu, Gamma),
+                _get_f3(E, gamma_factor, L, mu, M, nu, Gamma),
+                )
 
 
 def scattering_pm1(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):
@@ -153,11 +172,22 @@ def fake_scattering3(E, gamma_factor, mu, M, nu, Gamma, L, h_params):
                 + scattering_sum_factor**3 * (p_0 * f_3 + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
 
 
+def fake_scattering3_rr(E, gamma_factor, mu, M, nu, Gamma, L, h_params):
+    G, mass_1, mass_2, p_initial = h_params
+    p_0 = mu / Gamma * (gamma_factor**2 - 1)**0.5
+    f_1, f_2, f_3rr = get_all_f(E, gamma_factor, L, mu, M, nu, Gamma, with_rr=True)
+    scattering_sum_factor = G / L
+    return 2 * (scattering_sum_factor * (f_1 / (2 * p_0)) + scattering_sum_factor**2 * (np.pi * f_2 / 4)
+                + scattering_sum_factor**3 * (p_0 * f_3rr + f_1 * f_2 / (2 * p_0) - f_1**3 / (24 * p_0**3)))
+
+
 def all_fake_scattering(positions, momenta, h_params):
     E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta, h_params=h_params)
     return (fake_scattering1(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
             fake_scattering2(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
-            fake_scattering3(E, gamma_factor, mu, M, nu, Gamma, L, h_params),)
+            fake_scattering3(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
+            fake_scattering3_rr(E, gamma_factor, mu, M, nu, Gamma, L, h_params),
+            )
 
 
 def theoretical_perihelion_shift(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):

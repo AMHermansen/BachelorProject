@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Hamiltonians import (hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_post_minkowski3,
                           hamiltonian_two_body, hamiltonian_sr_kinetic, hamiltonian_newton_kinetic,
-                          hamiltonian_fake_pm1, hamiltonian_fake_pm2, hamiltonian_fake_pm3)
+                          hamiltonian_fake_pm1, hamiltonian_fake_pm2, hamiltonian_fake_pm3, hamiltonian_fake_pm3_rr)
 from Utilities import (get_solutions, get_angular_momentum, get_perihelion_shift, scattering_angle, get_scattering,
                        all_scattering_angle, all_scattering_angle_velocities,
                        time_averaged_mean)  # Might use later
@@ -221,7 +221,6 @@ def post_minkowski_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minim
     print('Theoretical scattering classical: ', scattering_classical(solution=solution_classical, h_params=h_params))
 
 
-
 def fake_pm_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_steps=10 ** 3, no_pm1=False):
     max_step = t_span[1] / minimal_steps
     factor_1 = mass_2 / (mass_1 + mass_2)
@@ -236,7 +235,7 @@ def fake_pm_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_step
     G = 1
     fake_h_params = G, mass_1, mass_2, p
     real_h_params = G, mass_1, mass_2
-    all_fake_hamiltonians = (hamiltonian_fake_pm1, hamiltonian_fake_pm2, hamiltonian_fake_pm3)
+    all_fake_hamiltonians = (hamiltonian_fake_pm1, hamiltonian_fake_pm2, hamiltonian_fake_pm3, hamiltonian_fake_pm3_rr)
     all_real_hamiltonians = (hamiltonian_post_minkowski1, hamiltonian_post_minkowski2, hamiltonian_post_minkowski3)
 
     all_solutions_fake = get_solutions(hamiltonians=all_fake_hamiltonians,
@@ -247,7 +246,7 @@ def fake_pm_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_step
                                        t_span=t_span, initial=initial_real, h_params=real_h_params,
                                        method='DOP853', dense_output=True, max_step=max_step
                                        )
-    solution_names_fake = ('Fake PM1', 'Fake PM2', 'Fake PM3')
+    solution_names_fake = ('Fake PM1', 'Fake PM2', 'Fake PM3 - no RR', 'Fake PM3-RR')
     solution_names_real = ('PM1', 'PM2', 'PM3')
     orbit_labels_fake = [(f'{sol_name} Particle1', f'{sol_name} Particle2') for sol_name in solution_names_fake]
     orbit_labels_real = [(f'{sol_name} Particle1', f'{sol_name} Particle2') for sol_name in solution_names_real]
@@ -260,14 +259,30 @@ def fake_pm_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_step
                         legends=orbit_labels_real,
                         x_indices=(0,), y_indices=(1,))
     plt.show()
-    scattering_fake1, scattering_fake2, scattering_fake3 = all_scattering_angle(solutions=all_solutions_fake,
-                                                                                position_coordinates=(0, 1))
-    v_scattering_fake1, v_scattering_fake2, v_scattering_fake3 = all_scattering_angle_velocities(solutions=all_solutions_fake,
-                                                                                                 position_coordinates=(0, 1))
+    scattering_fake1, \
+    scattering_fake2, \
+    scattering_fake3, \
+    scattering_fake3rr = all_scattering_angle(solutions=all_solutions_fake,
+                                              position_coordinates=(0, 1))
+    v_scattering_fake1, \
+    v_scattering_fake2, \
+    v_scattering_fake3, \
+    v_scattering_fake3rr = all_scattering_angle_velocities(solutions=all_solutions_fake,
+                                                           position_coordinates=(0, 1))
+    scattering_real1, \
+    scattering_real2, \
+    scattering_real3 = all_scattering_angle(all_solutions_real,
+                                            position_coordinates=(0, 1))
+
 
     print(f'{scattering_fake1=}')
     print(f'{scattering_fake2=}')
     print(f'{scattering_fake3=}')
+    print(f'{scattering_fake3rr=}')
+
+    print(f'{scattering_real1=}')
+    print(f'{scattering_real2=}')
+    print(f'{scattering_real3=}')
 
     print(f'{v_scattering_fake1=}')
     print(f'{v_scattering_fake2=}')
@@ -276,18 +291,28 @@ def fake_pm_analysis_scattering(r, b, p, mass_1, t_span, mass_2=1., minimal_step
     print('Fake pm1 scattering angle: ', get_scattering(scattering_fake1))
     print('Fake pm2 scattering angle: ', get_scattering(scattering_fake2))
     print('Fake pm3 scattering angle: ', get_scattering(scattering_fake3))
+    print('Fake pm3rr scattering angle: ', get_scattering(scattering_fake3rr))
+
+    print('Real pm1 scattering angle: ', get_scattering(scattering_real1))
+    print('Real pm2 scattering angle: ', get_scattering(scattering_real2))
+    print('Real pm3 scattering angle: ', get_scattering(scattering_real3))
 
     print('Fake pm1 v-scattering angle: ', get_scattering(v_scattering_fake1))
     print('Fake pm2 v-scattering angle: ', get_scattering(v_scattering_fake2))
     print('Fake pm3 v-scattering angle: ', get_scattering(v_scattering_fake3))
+    print('Fake pm3rr v-scattering angle: ', get_scattering(v_scattering_fake3rr))
 
-    t_scattering_fake1, t_scattering_fake2, t_scattering_fake3 = all_fake_scattering(positions=initial_fake[:number_of_coordinates_fake],
-                                                                                     momenta=initial_fake[number_of_coordinates_fake:],
-                                                                                     h_params=fake_h_params)
+    t_scattering_fake1, \
+    t_scattering_fake2, \
+    t_scattering_fake3, \
+    t_scattering_fake3rr = all_fake_scattering(positions=initial_fake[:number_of_coordinates_fake],
+                                               momenta=initial_fake[number_of_coordinates_fake:],
+                                               h_params=fake_h_params)
 
     print(f'{t_scattering_fake1=}')
     print(f'{t_scattering_fake2=}')
     print(f'{t_scattering_fake3=}')
+    print(f'{t_scattering_fake3rr=}')
 
 
 def main():

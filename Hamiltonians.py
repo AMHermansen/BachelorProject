@@ -279,3 +279,22 @@ def hamiltonian_fake_pm3(positions, momenta, h_params):  # Need to include initi
     distance = (positions[0]**2 + positions[1]**2)**0.5
     squared_momentum = momenta[0]**2 + momenta[1]**2
     return (squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2 - (G / distance)**3 * f_3) / mu
+
+
+def hamiltonian_fake_pm3_rr(positions, momenta, h_params):  # Need to include initial momentum for gamma_factor
+    """
+
+    :param positions:
+    :param momenta:
+    :param h_params:
+    :return:
+    """
+    G, mass_1, mass_2, p_initial = h_params
+    E, gamma_factor, mu, M, nu, Gamma, L = fake_hamiltonian_setup(positions=positions, momenta=momenta,
+                                                                  h_params=h_params)
+    f_1, f_2, f_3 = get_all_f(E=E, gamma_factor=gamma_factor, mu=mu, M=M, nu=nu, Gamma=Gamma, L=L, with_rr=True)
+    distance = (positions[0]**2 + positions[1]**2)**0.5
+    squared_momentum = momenta[0]**2 + momenta[1]**2
+    return (squared_momentum - (G / distance) * f_1 - (G / distance)**2 * f_2 - (G / distance)**3 * f_3) / mu
+
+
