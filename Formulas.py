@@ -10,6 +10,21 @@ def scattering_classical(solution, h_params):
     return 2 * np.arctan(G * (mass_1 + mass_2) / (v_infinity ** 2 * b))
 
 
+def scattering_classical_series1(solution, h_params):
+    G, mass_1, mass_2 = h_params
+    b = solution.y[1, 0] - solution.y[3, 0]
+    v_infinity = (solution.y[4, 0] / mass_1 - solution.y[6, 0] / mass_2)
+    return 2 * (G * (mass_1 + mass_2) / (v_infinity ** 2 * b))
+
+
+def scattering_classical_series3(solution, h_params):
+    G, mass_1, mass_2 = h_params
+    b = solution.y[1, 0] - solution.y[3, 0]
+    v_infinity = (solution.y[4, 0] / mass_1 - solution.y[6, 0] / mass_2)
+    series_term = G * (mass_1 + mass_2) / (v_infinity ** 2 * b)
+    return 2 * (series_term - series_term**3 / 3)
+
+
 def _get_constants(solution, hamiltonian, h_params, position_pair_coordinates, momentum_pair_coordinates):
     G, mass_1, mass_2 = h_params
     positions, momenta = split_position_momentum(solution=solution)

@@ -7,24 +7,39 @@ from scipy.signal import argrelextrema
 
 
 def precesion():
-    position = [200, np.pi/2, 0.]
-    momentum = [0., 0., 13]
+    position = [40, np.pi/2, 0.]
+    momentum = [0., 0., 4.2]
     a = 0
+
+    # position = [200, np.pi/2, 0.]
+    # momentum = [0., 0., 12.5]
 
     geod = Timelike(
         metric="Schwarzschild",
         metric_params=(a,),
         position=position,
         momentum=momentum,
-        steps=1.2*10**4,
+        steps=5*10**3,
         delta=1,
         order=2,
         omega=1,
         return_cartesian=False
     )
     print(geod.trajectory[1][argrelextrema(geod.trajectory[1][:, 1], np.greater)[0], 3])
+    geod_cart = Timelike(
+        metric="Schwarzschild",
+        metric_params=(a,),
+        position=position,
+        momentum=momentum,
+        steps=2. * 10 ** 3,
+        delta=1,
+        order=2,
+        omega=1,
+        return_cartesian=True
+    )
+    print(6 * np.pi / momentum[-1]**2)
     gpl = GeodesicPlotter()
-    gpl.plot2D(geod, coordinates=(1, 2))
+    gpl.plot2D(geod_cart, coordinates=(1, 2))
     gpl.show()
 
 
@@ -47,11 +62,11 @@ def scattering(r=1*10**2, b=10**1, v=0.425):
         metric_params=(a,),
         position=position,
         momentum=momentum,
-        steps=1.5 * 10 ** 3,
+        steps=2.5 * 10 ** 3,
         delta=0.2,
         return_cartesian=True,
         order=4,
-        omega=0.003
+        omega=0.001
     )
     gpl = GeodesicPlotter()
     gpl.plot2D(geod, coordinates=(1, 2))

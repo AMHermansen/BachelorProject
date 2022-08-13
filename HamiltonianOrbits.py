@@ -12,7 +12,7 @@ def harmonic_oscillator(t_span=(0, 10), initial=np.array([10.0, 0.0]), h_params=
     xn = np.linspace(t_span[0], t_span[1], 100)
     plt.plot(xn, 10 * np.cos((2 / 3) ** 0.5 * xn), 'ko', label='exact')
     plt.plot(xn, solution.sol(xn)[0, :], 'r-', label='numerical')
-    plt.xlabel('Time [au]')
+    plt.xlabel(r'Time $\left[\sqrt{\frac{m}{k}} \right]$')
     plt.ylabel('Position [au]')
     plt.title('Harmonic oscillator, m=3, k=2')
     plt.legend()
@@ -166,10 +166,10 @@ def eih_plots():
 
 def main():
 
-    # harmonic_oscillator()
+    harmonic_oscillator()
     # orbit()
     # two_bodies()
-    eih_plots()
+    # eih_plots()
 
 
 if __name__ == '__main__':
